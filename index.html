@@ -1,734 +1,465 @@
-import { useState, useEffect, useCallback } from "react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="GlowUp"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#09090e"/>
+<title>GlowUp System</title>
+<script>
+// Inline manifest as blob for PWA
+const manifest={name:"GlowUp System",short_name:"GlowUp",description:"Your complete skincare glow-up tracker",start_url:".",display:"standalone",background_color:"#09090e",theme_color:"#09090e",orientation:"portrait",icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%2309090e'/%3E%3Ccircle cx='96' cy='96' r='60' fill='none' stroke='%23c8a84b' stroke-width='6'/%3E%3Ctext x='96' y='108' text-anchor='middle' font-size='52' fill='%23c8a84b'%3E✦%3C/text%3E%3C/svg%3E",sizes:"192x192",type:"image/svg+xml"},{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%2309090e'/%3E%3Ccircle cx='256' cy='256' r='160' fill='none' stroke='%23c8a84b' stroke-width='14'/%3E%3Ctext x='256' y='286' text-anchor='middle' font-size='140' fill='%23c8a84b'%3E✦%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml"}]};
+const blob=new Blob([JSON.stringify(manifest)],{type:"application/json"});
+const url=URL.createObjectURL(blob);
+const link=document.createElement("link");
+link.rel="manifest";link.href=url;
+document.head.appendChild(link);
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#09090e;color:#ede8df;font-family:'Trebuchet MS',sans-serif;overscroll-behavior:none;-webkit-overflow-scrolling:touch;}
+::-webkit-scrollbar{display:none;}
+button{font-family:inherit;outline:none;-webkit-appearance:none;}
+textarea{font-family:inherit;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.pulse{animation:pulse 1.5s infinite;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef}=React;
 
-// ─── THEME ────────────────────────────────────────────────────────────────────
-const C = {
-  bg: "#09090e",
-  bg2: "#0f0e14",
-  card: "#131219",
-  cardBorder: "#1c1a24",
-  cardHover: "#181620",
-  gold: "#c8a84b",
-  goldLight: "#e8c96a",
-  goldDim: "rgba(200,168,75,0.1)",
-  goldBorder: "rgba(200,168,75,0.25)",
-  purple: "#9b7fca",
-  purpleDim: "rgba(155,127,202,0.1)",
-  purpleBorder: "rgba(155,127,202,0.25)",
-  green: "#5daa80",
-  greenDim: "rgba(93,170,128,0.1)",
-  greenBorder: "rgba(93,170,128,0.25)",
-  red: "#c05858",
-  redDim: "rgba(192,88,88,0.1)",
-  blue: "#5b8fc9",
-  blueDim: "rgba(91,143,201,0.1)",
-  text: "#ede8df",
-  textMid: "#9a9080",
-  textDim: "#52504a",
-  white: "#f5f0e8",
+// ── THEME ──────────────────────────────────────────────────────────────────
+const C={
+  bg:"#09090e",bg2:"#0f0e14",card:"#131219",cardBorder:"#1c1a24",
+  gold:"#c8a84b",goldLight:"#e8c96a",goldDim:"rgba(200,168,75,0.1)",goldBorder:"rgba(200,168,75,0.25)",
+  purple:"#9b7fca",purpleDim:"rgba(155,127,202,0.1)",purpleBorder:"rgba(155,127,202,0.25)",
+  green:"#5daa80",greenDim:"rgba(93,170,128,0.1)",greenBorder:"rgba(93,170,128,0.25)",
+  red:"#c05858",redDim:"rgba(192,88,88,0.1)",
+  blue:"#5b8fc9",blueDim:"rgba(91,143,201,0.1)",
+  text:"#ede8df",textMid:"#9a9080",textDim:"#52504a",white:"#f5f0e8",
 };
 
-// ─── DATA ─────────────────────────────────────────────────────────────────────
-const SCHEDULE = [
-  { day: "MON", type: "adaferin" },
-  { day: "TUE", type: "aziderm" },
-  { day: "WED", type: "recovery" },
-  { day: "THU", type: "adaferin" },
-  { day: "FRI", type: "recovery" },
-  { day: "SAT", type: "aziderm" },
-  { day: "SUN", type: "recovery" },
+// ── DATA ───────────────────────────────────────────────────────────────────
+const SCHEDULE=[
+  {day:"MON",type:"adaferin"},{day:"TUE",type:"aziderm"},{day:"WED",type:"recovery"},
+  {day:"THU",type:"adaferin"},{day:"FRI",type:"recovery"},{day:"SAT",type:"aziderm"},{day:"SUN",type:"recovery"},
 ];
-
-const MORNING_STEPS = [
-  { icon: "💧", label: "CLEANSE", product: "Cetaphil Oily Skin Cleanser", price: "₹399", note: "20–30 sec massage, cold rinse", wait: null },
-  { icon: "🍋", label: "VITAMIN C", product: "Minimalist Vit C 16%", price: "₹695", note: "3–4 drops, wait 10 mins", wait: "⏱ 10 min" },
-  { icon: "🫧", label: "MOISTURISE", product: "Dot & Key Cica + Niacinamide", price: "₹545", note: "Thin even layer, wait 1 min", wait: "⏱ 1 min" },
-  { icon: "☀️", label: "SPF — NEVER SKIP", product: "Minimalist SPF 50 PA++++", price: "₹475", note: "Generous — always last step", wait: null },
+const MORNING_STEPS=[
+  {icon:"💧",label:"CLEANSE",product:"Cetaphil Oily Skin Cleanser",price:"₹399",note:"20–30 sec massage, cold rinse",wait:null},
+  {icon:"🍋",label:"VITAMIN C",product:"Minimalist Vit C 16%",price:"₹695",note:"3–4 drops, press in gently",wait:600},
+  {icon:"🫧",label:"MOISTURISE",product:"Dot & Key Cica + Niacinamide",price:"₹545",note:"Thin even layer",wait:60},
+  {icon:"☀️",label:"SPF — NEVER SKIP",product:"Minimalist SPF 50 PA++++",price:"₹475",note:"Generous — always last step",wait:null},
 ];
-
-const ADAFERIN_STEPS = [
-  { icon: "💧", label: "CLEANSE", product: "Cetaphil Oily Skin Cleanser", price: "₹399", note: "Cleanse, rinse, fully dry skin", wait: "⏱ 10 min — bone dry" },
-  { icon: "⭐", label: "ADAFERIN", product: "Adaferin 0.1% Gel", price: "₹280", note: "Pea-sized, dry skin ONLY", wait: "⏱ 10 min" },
-  { icon: "🌿", label: "MOISTURISE", product: "Dot & Key Cica + Niacinamide", price: "₹545", note: "Generous — Adaferin is drying", wait: null },
+const ADAFERIN_STEPS=[
+  {icon:"💧",label:"CLEANSE",product:"Cetaphil Oily Skin Cleanser",price:"₹399",note:"Cleanse, rinse, fully dry skin",wait:600},
+  {icon:"⭐",label:"ADAFERIN",product:"Adaferin 0.1% Gel",price:"₹280",note:"Pea-sized — DRY SKIN ONLY",wait:600},
+  {icon:"🌿",label:"MOISTURISE",product:"Dot & Key Cica + Niacinamide",price:"₹545",note:"Generous — Adaferin is drying",wait:null},
 ];
-
-const AZIDERM_STEPS = [
-  { icon: "💧", label: "CLEANSE", product: "Cetaphil Oily Skin Cleanser", price: "₹399", note: "Cleanse, wait 5 mins", wait: "⏱ 5 min" },
-  { icon: "🎯", label: "ALPHA ARBUTIN", product: "Minimalist Alpha Arbutin 2%", price: "₹445", note: "3–4 drops — add from Week 4", wait: "⏱ 5 min" },
-  { icon: "✨", label: "AZIDERM", product: "Aziderm 10% Gel", price: "₹320", note: "Thin layer on marks + acne areas", wait: "⏱ 10 min" },
-  { icon: "🌿", label: "MOISTURISE", product: "Dot & Key Cica + Niacinamide", price: "₹545", note: "Seal everything in", wait: null },
+const AZIDERM_STEPS=[
+  {icon:"💧",label:"CLEANSE",product:"Cetaphil Oily Skin Cleanser",price:"₹399",note:"Cleanse, wait 5 mins",wait:300},
+  {icon:"🎯",label:"ALPHA ARBUTIN",product:"Minimalist Alpha Arbutin 2%",price:"₹445",note:"3–4 drops — from Week 4 only",wait:300},
+  {icon:"✨",label:"AZIDERM",product:"Aziderm 10% Gel",price:"₹320",note:"Thin layer on marks + acne areas",wait:600},
+  {icon:"🌿",label:"MOISTURISE",product:"Dot & Key Cica + Niacinamide",price:"₹545",note:"Seal everything in",wait:null},
 ];
-
-const RECOVERY_STEPS = [
-  { icon: "💧", label: "CLEANSE", product: "Cetaphil Oily Skin Cleanser", price: "₹399", note: "Gentle only — no pressure", wait: null },
-  { icon: "🌿", label: "MOISTURISE", product: "Dot & Key + WOW Aloe Vera", price: "₹199", note: "Aloe first, Dot & Key on top — generous", wait: null },
+const RECOVERY_STEPS=[
+  {icon:"💧",label:"CLEANSE",product:"Cetaphil Oily Skin Cleanser",price:"₹399",note:"Gentle only — no pressure",wait:null},
+  {icon:"🌿",label:"MOISTURISE",product:"Dot & Key + WOW Aloe Vera",price:"₹199",note:"Aloe first, Dot & Key on top",wait:null},
 ];
-
-const SHOPPING = [
-  { p: 1, c: C.red, product: "Light Fluid SPF 50 PA++++", brand: "Minimalist", price: "₹475", where: "Nykaa" },
-  { p: 2, c: C.red, product: "Oily Skin Cleanser", brand: "Cetaphil", price: "₹399", where: "Pharmacy" },
-  { p: 3, c: C.red, product: "Adaferin 0.1% Gel", brand: "Adaferin", price: "₹280", where: "Medical pharmacy" },
-  { p: 4, c: C.red, product: "Cica + Niacinamide Moisturiser", brand: "Dot & Key", price: "₹545", where: "Nykaa" },
-  { p: 5, c: C.gold, product: "Vitamin C 16% EAA", brand: "Minimalist", price: "₹695", where: "Nykaa" },
-  { p: 6, c: C.gold, product: "Aziderm 10% Gel", brand: "Aziderm", price: "₹320", where: "Medical pharmacy" },
-  { p: 7, c: C.purple, product: "Alpha Arbutin 2%", brand: "Minimalist", price: "₹445", where: "Nykaa" },
-  { p: 8, c: C.purple, product: "99% Aloe Vera Gel", brand: "WOW", price: "₹199", where: "Nykaa" },
+const SHOPPING=[
+  {p:1,c:C.red,product:"Light Fluid SPF 50 PA++++",brand:"Minimalist",price:"₹475",where:"Nykaa"},
+  {p:2,c:C.red,product:"Oily Skin Cleanser",brand:"Cetaphil",price:"₹399",where:"Pharmacy"},
+  {p:3,c:C.red,product:"Adaferin 0.1% Gel",brand:"Adaferin",price:"₹280",where:"Medical pharmacy"},
+  {p:4,c:C.red,product:"Cica + Niacinamide Moisturiser",brand:"Dot & Key",price:"₹545",where:"Nykaa"},
+  {p:5,c:C.gold,product:"Vitamin C 16% EAA",brand:"Minimalist",price:"₹695",where:"Nykaa"},
+  {p:6,c:C.gold,product:"Aziderm 10% Gel",brand:"Aziderm",price:"₹320",where:"Medical pharmacy"},
+  {p:7,c:C.purple,product:"Alpha Arbutin 2%",brand:"Minimalist",price:"₹445",where:"Nykaa"},
+  {p:8,c:C.purple,product:"99% Aloe Vera Gel",brand:"WOW",price:"₹199",where:"Nykaa"},
 ];
-
-const SUPPLEMENTS = [
-  { time: "AM", name: "Moringa ×1", brand: "Himalaya / Organic India", why: "Zinc + Vit A + amino acids" },
-  { time: "AM", name: "Chia Seeds 1 tbsp", brand: "Raw / Truefarm", why: "Omega 3 → reduces inflammation" },
-  { time: "AM", name: "7 Walnuts", brand: "Any raw", why: "Omega 3 + Vit E → scar healing" },
-  { time: "PM", name: "Moringa ×1", brand: "Himalaya / Organic India", why: "Maintains Zinc levels" },
-  { time: "PM", name: "Sea Buckthorn ×1", brand: "Himalaya / Herbal Hills", why: "Omega 7 → barrier repair" },
-  { time: "PM", name: "Flaxseed Oil ×1", brand: "Himalaya (₹300)", why: "ALA Omega 3 → skin regeneration" },
+const SUPPLEMENTS=[
+  {time:"AM",name:"Moringa ×1",brand:"Himalaya / Organic India",why:"Zinc + Vit A + amino acids"},
+  {time:"AM",name:"Chia Seeds 1 tbsp",brand:"Raw / Truefarm",why:"Omega 3 → reduces inflammation"},
+  {time:"AM",name:"7 Walnuts",brand:"Any raw",why:"Omega 3 + Vit E → scar healing"},
+  {time:"PM",name:"Moringa ×1",brand:"Himalaya / Organic India",why:"Maintains Zinc levels"},
+  {time:"PM",name:"Sea Buckthorn ×1",brand:"Himalaya / Herbal Hills",why:"Omega 7 → barrier repair"},
+  {time:"PM",name:"Flaxseed Oil ×1",brand:"Himalaya (₹300)",why:"ALA Omega 3 → skin regeneration"},
 ];
-
-const CLINIC = [
-  { e: "🔴", name: "Subcision", why: "Breaks tissue pulling skin into pits", timing: "First", cost: "₹2k–4k" },
-  { e: "🔴", name: "Microneedling ×6–8", why: "Collagen into depressed scars", timing: "After subcision", cost: "₹1.5k–3k/session" },
-  { e: "🟠", name: "TCA Cross", why: "Individual deep boxcar scars", timing: "With microneedling", cost: "₹2k–3.5k" },
-  { e: "🟡", name: "Chemical Peel TCA", why: "Texture + PIH together", timing: "Mid-routine", cost: "₹1.5k–3k" },
-  { e: "🟢", name: "CO2 Fractional Laser", why: "Most powerful — remaining scars", timing: "Final stage", cost: "₹4k–8k" },
+const CLINIC=[
+  {e:"🔴",name:"Subcision",why:"Breaks tissue pulling skin into pits",timing:"Do first",cost:"₹2k–4k"},
+  {e:"🔴",name:"Microneedling ×6–8",why:"Collagen into depressed scars",timing:"After subcision",cost:"₹1.5k–3k/session"},
+  {e:"🟠",name:"TCA Cross",why:"Individual deep boxcar scars",timing:"With microneedling",cost:"₹2k–3.5k"},
+  {e:"🟡",name:"Chemical Peel TCA",why:"Texture + PIH together",timing:"Mid-routine",cost:"₹1.5k–3k"},
+  {e:"🟢",name:"CO2 Fractional Laser",why:"Most powerful — remaining scars",timing:"Final stage",cost:"₹4k–8k"},
 ];
-
-const PHASES = [
-  { id: 1, weeks: "Weeks 1–4", title: "Adjustment", desc: "Skin adapts to Adaferin. Possible purge — normal. Stay consistent.", color: C.gold },
-  { id: 2, weeks: "Weeks 5–8", title: "Building", desc: "Add Alpha Arbutin. Increase to 3 Adaferin nights/week if tolerating well.", color: C.purple },
-  { id: 3, weeks: "Month 3+", title: "Transformation", desc: "Book dermat for microneedling. Marks fading. Texture improving.", color: C.green },
+const PHASES=[
+  {id:1,weeks:"Weeks 1–4",title:"Adjustment",desc:"Skin adapts to Adaferin. Possible purge — normal. Stay consistent.",color:C.gold},
+  {id:2,weeks:"Weeks 5–8",title:"Building",desc:"Add Alpha Arbutin. Increase to 3 Adaferin nights/week if tolerating well.",color:C.purple},
+  {id:3,weeks:"Month 3+",title:"Transform",desc:"Book dermat for microneedling. Marks fading. Texture improving.",color:C.green},
 ];
-
-const MOTIVATIONS = [
+const MOTIVATIONS=[
   "Every step done is compounding. Your skin 3 months from now depends on today.",
   "The purge is proof it's working. Don't quit when it gets harder.",
   "SPF today = preventing tomorrow's pigmentation. Never skip it.",
   "Consistency beats perfection. A 70% routine daily beats 100% once a week.",
-  "Your supplements are working from the inside while actives work outside.",
+  "Your supplements are working inside while actives work outside.",
   "Results take 8 weeks minimum. Trust the process.",
-  "Cut dairy today. It's the one change that'll show fastest.",
+  "Cut dairy. It's the one change that'll show fastest.",
   "Drink your water. Your actives are useless without hydration.",
   "You're doing what 90% of people never do — actually following a real plan.",
   "Book that dermat appointment. Skincare fixes the surface; they fix the depth.",
 ];
 
-// ─── UTILS ────────────────────────────────────────────────────────────────────
-const todayKey = () => new Date().toISOString().split("T")[0];
-const getDayIndex = () => { const d = new Date().getDay(); return d === 0 ? 6 : d - 1; };
-const getTodaySchedule = () => SCHEDULE[getDayIndex()];
-const getDaySteps = (type) => type === "adaferin" ? ADAFERIN_STEPS : type === "aziderm" ? AZIDERM_STEPS : RECOVERY_STEPS;
-const typeColor = (t) => t === "adaferin" ? C.gold : t === "aziderm" ? C.purple : C.green;
-const typeLabel = (t) => t === "adaferin" ? "Adaferin Night" : t === "aziderm" ? "Aziderm Night" : "Recovery Night";
-const formatDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+// ── UTILS ──────────────────────────────────────────────────────────────────
+const todayKey=()=>new Date().toISOString().split("T")[0];
+const getDayIndex=()=>{const d=new Date().getDay();return d===0?6:d-1;};
+const getTodaySched=()=>SCHEDULE[getDayIndex()];
+const getDaySteps=t=>t==="adaferin"?ADAFERIN_STEPS:t==="aziderm"?AZIDERM_STEPS:RECOVERY_STEPS;
+const typeColor=t=>t==="adaferin"?C.gold:t==="aziderm"?C.purple:C.green;
+const typeLabel=t=>t==="adaferin"?"Adaferin Night":t==="aziderm"?"Aziderm Night":"Recovery Night";
+const fmtDate=d=>new Date(d).toLocaleDateString("en-IN",{day:"numeric",month:"short"});
+const daysBetween=(d1,d2)=>Math.floor((new Date(d2)-new Date(d1))/86400000);
 
-function getDaysBetween(d1, d2) {
-  return Math.floor((new Date(d2) - new Date(d1)) / 86400000);
-}
-
-function getStartDate(history) {
-  const dates = Object.keys(history).sort();
-  return dates.length > 0 ? dates[0] : todayKey();
-}
-
-function calcStreak(history) {
-  let streak = 0;
-  const today = todayKey();
-  let d = new Date(today);
-  while (true) {
-    const key = d.toISOString().split("T")[0];
-    const entry = history[key];
-    if (entry && (entry.morningDone || entry.nightDone)) {
-      streak++;
-      d.setDate(d.getDate() - 1);
-    } else if (key === today) {
-      d.setDate(d.getDate() - 1);
-    } else break;
+function calcStreak(h){
+  let s=0,d=new Date(todayKey());
+  for(let i=0;i<365;i++){
+    const k=d.toISOString().split("T")[0];
+    const e=h[k];
+    if(e&&(e.morningDone||e.nightDone)){s++;d.setDate(d.getDate()-1);}
+    else if(k===todayKey()){d.setDate(d.getDate()-1);}
+    else break;
   }
-  return streak;
+  return s;
+}
+function calcTotal(h){return Object.values(h).filter(e=>e.morningDone||e.nightDone).length;}
+function getStart(h){const k=Object.keys(h).sort();return k.length>0?k[0]:todayKey();}
+
+// ── STORAGE (localStorage) ─────────────────────────────────────────────────
+const load=k=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch{return null;}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}};
+
+// ── SMALL COMPONENTS ───────────────────────────────────────────────────────
+function Tag({children,color=C.gold}){
+  return <span style={{fontSize:"9px",letterSpacing:"1.5px",fontWeight:"700",color,background:`${color}15`,border:`1px solid ${color}35`,borderRadius:"4px",padding:"2px 7px",fontFamily:"monospace"}}>{children}</span>;
+}
+function Pill({children,active,color,onClick}){
+  return <button onClick={onClick} style={{background:active?`${color}18`:C.card,border:`1px solid ${active?color+"50":C.cardBorder}`,borderRadius:"20px",padding:"7px 14px",color:active?color:C.textDim,fontSize:"11px",cursor:"pointer",letterSpacing:"0.5px",transition:"all 0.2s",flexShrink:0}}>{children}</button>;
+}
+function PBar({value,max,color=C.gold,h=3}){
+  return <div style={{height:h,background:C.cardBorder,borderRadius:"99px",overflow:"hidden"}}><div style={{width:`${Math.min(100,(value/max)*100)}%`,height:"100%",background:color,borderRadius:"99px",transition:"width 0.4s ease"}}/></div>;
+}
+function StatBox({label,value,color=C.gold,sub}){
+  return <div style={{background:C.card,border:`1px solid ${C.cardBorder}`,borderRadius:"14px",padding:"14px",textAlign:"center"}}>
+    <div style={{fontSize:"26px",color,fontFamily:"Georgia,serif",lineHeight:1}}>{value}</div>
+    {sub&&<div style={{fontSize:"10px",color:C.textDim,marginTop:"2px"}}>{sub}</div>}
+    <div style={{fontSize:"10px",color:C.textDim,letterSpacing:"1.5px",marginTop:"4px"}}>{label}</div>
+  </div>;
 }
 
-function calcTotalDays(history) {
-  return Object.values(history).filter(e => e.morningDone || e.nightDone).length;
-}
+// ── WAIT TIMER ─────────────────────────────────────────────────────────────
+function WaitTimer({totalSecs,color}){
+  const[secs,setSecs]=useState(totalSecs);
+  const[running,setRunning]=useState(false);
+  const[done,setDone]=useState(false);
+  const[expanded,setExpanded]=useState(false);
+  const intervalRef=useRef(null);
 
-// ─── STORAGE ──────────────────────────────────────────────────────────────────
-async function loadData(key) {
-  try {
-    const r = await window.storage.get(key);
-    return r ? JSON.parse(r.value) : null;
-  } catch { return null; }
-}
-async function saveData(key, val) {
-  try { await window.storage.set(key, JSON.stringify(val)); } catch {}
-}
+  useEffect(()=>{
+    if(running&&secs>0){
+      intervalRef.current=setInterval(()=>setSecs(s=>{if(s<=1){clearInterval(intervalRef.current);setRunning(false);setDone(true);return 0;}return s-1;}),1000);
+    }
+    return()=>clearInterval(intervalRef.current);
+  },[running]);
 
-// ─── SMALL COMPONENTS ─────────────────────────────────────────────────────────
-function Tag({ children, color = C.gold, bg }) {
-  return <span style={{ fontSize: "9px", letterSpacing: "1.5px", fontWeight: "700", color, background: bg || `${color}15`, border: `1px solid ${color}35`, borderRadius: "4px", padding: "2px 7px", fontFamily: "monospace" }}>{children}</span>;
-}
+  const reset=e=>{e&&e.stopPropagation();clearInterval(intervalRef.current);setSecs(totalSecs);setRunning(false);setDone(false);};
+  const toggle=e=>{e.stopPropagation();if(done){reset(e);return;}if(!expanded)setExpanded(true);setRunning(r=>!r);};
 
-function Pill({ children, active, color, onClick }) {
-  return (
-    <button onClick={onClick} style={{
-      background: active ? `${color}18` : C.card, border: `1px solid ${active ? color + "50" : C.cardBorder}`,
-      borderRadius: "20px", padding: "7px 14px", color: active ? color : C.textDim,
-      fontSize: "11px", cursor: "pointer", fontFamily: "inherit", letterSpacing: "0.5px",
-      transition: "all 0.2s", flexShrink: 0,
-    }}>{children}</button>
-  );
-}
+  const mins=Math.floor(secs/60),rem=secs%60;
+  const pct=(totalSecs-secs)/totalSecs;
+  const r=22,cx=28,cy=28,circ=2*Math.PI*r;
+  const label=`${Math.floor(totalSecs/60)} min`;
 
-function ProgressBar({ value, max, color = C.gold, height = 3 }) {
-  return (
-    <div style={{ height, background: C.cardBorder, borderRadius: "99px", overflow: "hidden" }}>
-      <div style={{ width: `${Math.min(100, (value / max) * 100)}%`, height: "100%", background: color, borderRadius: "99px", transition: "width 0.4s ease" }} />
-    </div>
-  );
-}
-
-function StatBox({ label, value, color = C.gold, sub }) {
-  return (
-    <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: "14px", padding: "14px", textAlign: "center" }}>
-      <div style={{ fontSize: "26px", color, fontFamily: "'Georgia',serif", lineHeight: 1 }}>{value}</div>
-      {sub && <div style={{ fontSize: "10px", color: C.textDim, marginTop: "2px" }}>{sub}</div>}
-      <div style={{ fontSize: "10px", color: C.textDim, letterSpacing: "1.5px", marginTop: "4px" }}>{label}</div>
-    </div>
-  );
-}
-
-// ─── WAIT TIMER ───────────────────────────────────────────────────────────────
-function parseWaitSeconds(waitStr) {
-  if (!waitStr) return 0;
-  const match = waitStr.match(/(\d+)\s*min/);
-  return match ? parseInt(match[1]) * 60 : 0;
-}
-
-function WaitTimer({ waitStr, color }) {
-  const totalSecs = parseWaitSeconds(waitStr);
-  const [secs, setSecs] = useState(totalSecs);
-  const [running, setRunning] = useState(false);
-  const [done, setDone] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-
-  useEffect(() => {
-    if (!running) return;
-    if (secs <= 0) { setRunning(false); setDone(true); return; }
-    const t = setTimeout(() => setSecs(s => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [running, secs]);
-
-  const reset = (e) => {
-    e.stopPropagation();
-    setSecs(totalSecs);
-    setRunning(false);
-    setDone(false);
-  };
-
-  const toggle = (e) => {
-    e.stopPropagation();
-    if (done) { reset(e); return; }
-    setRunning(r => !r);
-    if (!expanded) setExpanded(true);
-  };
-
-  const mins = Math.floor(secs / 60);
-  const remSecs = secs % 60;
-  const pct = totalSecs > 0 ? ((totalSecs - secs) / totalSecs) : 0;
-
-  // SVG arc for circular progress
-  const r = 22, cx = 28, cy = 28, circumference = 2 * Math.PI * r;
-  const strokeDash = circumference * pct;
-
-  const labelText = waitStr.replace("⏱ ", "").replace(" ↓", "");
-
-  return (
-    <div style={{ margin: "4px 0 6px" }}>
-      {/* Collapsed pill — always visible */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-        <div style={{ height: "1px", flex: 1, background: `${color}20` }} />
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ fontSize: "10px", color: color, letterSpacing: "0.8px", opacity: 0.8 }}>
-            {done ? "✓ done" : `wait ${labelText}`}
-          </span>
-          <button
-            onClick={toggle}
-            style={{
-              background: done ? `${C.green}18` : running ? `${color}20` : `${color}12`,
-              border: `1px solid ${done ? C.green + "40" : color + "35"}`,
-              borderRadius: "20px", padding: "3px 10px",
-              color: done ? C.green : color,
-              fontSize: "10px", cursor: "pointer", fontFamily: "inherit",
-              letterSpacing: "0.5px", transition: "all 0.2s",
-            }}
-          >
-            {done ? "↺ reset" : running ? "⏸ pause" : "▶ start"}
+  return(
+    <div style={{margin:"4px 0 6px"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"8px"}}>
+        <div style={{height:"1px",flex:1,background:`${color}20`}}/>
+        <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+          <span style={{fontSize:"10px",color,letterSpacing:"0.8px",opacity:0.8}}>{done?"✓ done":`wait ${label}`}</span>
+          <button onClick={toggle} style={{background:done?`${C.green}18`:running?`${color}20`:`${color}12`,border:`1px solid ${done?C.green+"40":color+"35"}`,borderRadius:"20px",padding:"3px 10px",color:done?C.green:color,fontSize:"10px",cursor:"pointer",letterSpacing:"0.5px",transition:"all 0.2s"}}>
+            {done?"↺ reset":running?"⏸ pause":"▶ start"}
           </button>
-          {(running || (expanded && !done)) && (
-            <button onClick={reset} style={{
-              background: "transparent", border: "none",
-              color: C.textDim, fontSize: "10px", cursor: "pointer", padding: "2px 4px",
-            }}>✕</button>
-          )}
+          {(running||(expanded&&!done&&secs<totalSecs))&&<button onClick={reset} style={{background:"transparent",border:"none",color:C.textDim,fontSize:"10px",cursor:"pointer",padding:"2px 4px"}}>✕</button>}
         </div>
-        <div style={{ height: "1px", flex: 1, background: `${color}20` }} />
+        <div style={{height:"1px",flex:1,background:`${color}20`}}/>
       </div>
-
-      {/* Expanded timer — shown when active */}
-      {(running || (expanded && secs < totalSecs && !done)) && (
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center",
-          gap: "16px", padding: "10px 0 4px",
-          animation: "fadeIn 0.2s ease",
-        }}>
-          {/* Circular arc */}
-          <svg width="56" height="56" style={{ flexShrink: 0 }}>
-            {/* Track */}
-            <circle cx={cx} cy={cy} r={r} fill="none" stroke={`${color}15`} strokeWidth="3" />
-            {/* Progress */}
-            <circle
-              cx={cx} cy={cy} r={r} fill="none"
-              stroke={done ? C.green : color}
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeDasharray={`${strokeDash} ${circumference}`}
-              strokeDashoffset={0}
-              transform={`rotate(-90 ${cx} ${cy})`}
-              style={{ transition: "stroke-dasharray 0.5s linear" }}
-            />
-            <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle"
-              style={{ fill: done ? C.green : color, fontSize: "11px", fontFamily: "'Trebuchet MS', sans-serif", fontWeight: "600" }}>
-              {done ? "✓" : `${mins}:${String(remSecs).padStart(2, "0")}`}
+      {(running||(expanded&&secs<totalSecs&&!done))&&(
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:"16px",padding:"10px 0 4px",animation:"fadeIn 0.2s ease"}}>
+          <svg width="56" height="56" style={{flexShrink:0}}>
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke={`${color}15`} strokeWidth="3"/>
+            <circle cx={cx} cy={cy} r={r} fill="none" stroke={done?C.green:color} strokeWidth="3" strokeLinecap="round"
+              strokeDasharray={`${circ*pct} ${circ}`} strokeDashoffset="0" transform={`rotate(-90 ${cx} ${cy})`}
+              style={{transition:"stroke-dasharray 0.5s linear"}}/>
+            <text x={cx} y={cy+1} textAnchor="middle" dominantBaseline="middle"
+              style={{fill:done?C.green:color,fontSize:"10px",fontFamily:"Trebuchet MS",fontWeight:"600"}}>
+              {`${mins}:${String(rem).padStart(2,"0")}`}
             </text>
           </svg>
           <div>
-            <div style={{ fontSize: "20px", color: done ? C.green : color, fontFamily: "'Georgia',serif", lineHeight: 1 }}>
-              {done ? "Done!" : `${mins}:${String(remSecs).padStart(2, "0")}`}
-            </div>
-            <div style={{ fontSize: "10px", color: C.textDim, marginTop: "3px" }}>
-              {done ? "proceed to next step" : running ? `of ${labelText}` : "paused"}
-            </div>
+            <div style={{fontSize:"22px",color:done?C.green:color,fontFamily:"Georgia,serif",lineHeight:1}}>{`${mins}:${String(rem).padStart(2,"0")}`}</div>
+            <div style={{fontSize:"10px",color:C.textDim,marginTop:"3px"}}>{done?"proceed to next step":running?`of ${label}`:"paused"}</div>
           </div>
         </div>
       )}
-
-      {/* Done celebration */}
-      {done && (
-        <div style={{ textAlign: "center", fontSize: "11px", color: C.green, padding: "4px 0", letterSpacing: "1px" }}>
-          ✓ wait complete — next step ↓
-        </div>
-      )}
+      {done&&<div style={{textAlign:"center",fontSize:"11px",color:C.green,padding:"4px 0",letterSpacing:"1px"}}>✓ wait complete — proceed ↓</div>}
     </div>
   );
 }
 
-// ─── STEP CARD ────────────────────────────────────────────────────────────────
-function StepCard({ step, checked, onToggle, color = C.gold }) {
-  return (
-    <div style={{ marginBottom: "4px" }}>
-      <div onClick={onToggle} style={{
-        background: checked ? `${color}08` : C.card, border: `1px solid ${checked ? color + "28" : C.cardBorder}`,
-        borderRadius: "13px", padding: "12px 14px", display: "flex", gap: "10px", alignItems: "flex-start",
-        cursor: "pointer", transition: "all 0.2s", opacity: checked ? 0.55 : 1,
-      }}>
-        <div style={{
-          width: "30px", height: "30px", borderRadius: "50%", flexShrink: 0,
-          background: checked ? `${color}20` : `${color}10`, border: `1px solid ${color}30`,
-          display: "flex", alignItems: "center", justifyContent: "center", fontSize: checked ? "14px" : "15px",
-          color: checked ? color : "unset",
-        }}>{checked ? "✓" : step.icon}</div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
+// ── STEP CARD ──────────────────────────────────────────────────────────────
+function StepCard({step,checked,onToggle,color=C.gold}){
+  return(
+    <div style={{marginBottom:"4px"}}>
+      <div onClick={onToggle} style={{background:checked?`${color}08`:C.card,border:`1px solid ${checked?color+"28":C.cardBorder}`,borderRadius:"13px",padding:"12px 14px",display:"flex",gap:"10px",alignItems:"flex-start",cursor:"pointer",transition:"all 0.2s",opacity:checked?0.55:1}}>
+        <div style={{width:"30px",height:"30px",borderRadius:"50%",flexShrink:0,background:checked?`${color}20`:`${color}10`,border:`1px solid ${color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:checked?"14px":"15px",color:checked?color:"unset"}}>{checked?"✓":step.icon}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:"3px"}}>
             <Tag color={color}>{step.label}</Tag>
-            <span style={{ fontSize: "11px", color: C.gold }}>{step.price}</span>
+            <span style={{fontSize:"11px",color:C.gold}}>{step.price}</span>
           </div>
-          <div style={{ fontSize: "13px", color: C.white, marginBottom: "1px" }}>{step.product}</div>
-          <div style={{ fontSize: "11px", color: C.textDim, fontStyle: "italic", marginTop: "3px" }}>{step.note}</div>
+          <div style={{fontSize:"13px",color:C.white,marginBottom:"1px"}}>{step.product}</div>
+          <div style={{fontSize:"11px",color:C.textDim,fontStyle:"italic",marginTop:"3px"}}>{step.note}</div>
         </div>
       </div>
-      {step.wait && <WaitTimer waitStr={step.wait} color={color} />}
+      {step.wait&&<WaitTimer totalSecs={step.wait} color={color}/>}
     </div>
   );
 }
 
-// ─── TODAY SCREEN ─────────────────────────────────────────────────────────────
-function TodayScreen({ history, setHistory, waterGlasses, setWaterGlasses }) {
-  const todaySched = getTodaySchedule();
-  const nightColor = typeColor(todaySched.type);
-  const nightLabel = typeLabel(todaySched.type);
-  const nightSteps = getDaySteps(todaySched.type);
+// ── TODAY ──────────────────────────────────────────────────────────────────
+function TodayScreen({history,setHistory,water,setWater}){
+  const sched=getTodaySched();
+  const nc=typeColor(sched.type),nl=typeLabel(sched.type),ns=getDaySteps(sched.type);
+  const td=history[todayKey()]||{};
+  const[mC,setMC]=useState(td.mChecked||{});
+  const[nC,setNC]=useState(td.nChecked||{});
+  const[note,setNote]=useState(td.note||"");
+  const[showNote,setShowNote]=useState(false);
+  const[saved,setSaved]=useState(false);
 
-  const todayData = history[todayKey()] || {};
-  const [mChecked, setMChecked] = useState(todayData.mChecked || {});
-  const [nChecked, setNChecked] = useState(todayData.nChecked || {});
-  const [note, setNote] = useState(todayData.note || "");
-  const [showNote, setShowNote] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const mDone=Object.values(mC).filter(Boolean).length;
+  const nDone=Object.values(nC).filter(Boolean).length;
+  const streak=calcStreak(history),total=calcTotal(history);
+  const start=getStart(history),dayNum=daysBetween(start,todayKey())+1;
+  const motiv=MOTIVATIONS[new Date().getDate()%MOTIVATIONS.length];
+  const wTarget=8;
 
-  const mDone = Object.values(mChecked).filter(Boolean).length;
-  const nDone = Object.values(nChecked).filter(Boolean).length;
-  const mComplete = mDone === MORNING_STEPS.length;
-  const nComplete = nDone === nightSteps.length;
+  const persist=useCallback(async(mc,nc,nt)=>{
+    const e={mChecked:mc,nChecked:nc,note:nt,morningDone:Object.values(mc).filter(Boolean).length===MORNING_STEPS.length,nightDone:Object.values(nc).filter(Boolean).length===ns.length,date:todayKey(),type:sched.type};
+    const up={...history,[todayKey()]:e};
+    setHistory(up);save("history",up);
+  },[history,ns.length,sched.type]);
 
-  const motivation = MOTIVATIONS[new Date().getDate() % MOTIVATIONS.length];
-  const streak = calcStreak(history);
-  const totalDays = calcTotalDays(history);
-  const startDate = getStartDate(history);
-  const dayNumber = getDaysBetween(startDate, todayKey()) + 1;
+  const tM=async i=>{const mc={...mC,[i]:!mC[i]};setMC(mc);await persist(mc,nC,note);};
+  const tN=async i=>{const nc={...nC,[i]:!nC[i]};setNC(nc);await persist(mC,nc,note);};
+  const saveNote=async()=>{await persist(mC,nC,note);setSaved(true);setTimeout(()=>setSaved(false),1500);};
+  const addWater=()=>{const w=Math.min(water+1,12);setWater(w);save("water_"+todayKey(),w);};
 
-  const persistDay = useCallback(async (mc, nc, nt) => {
-    const entry = {
-      mChecked: mc, nChecked: nc, note: nt,
-      morningDone: Object.values(mc).filter(Boolean).length === MORNING_STEPS.length,
-      nightDone: Object.values(nc).filter(Boolean).length === nightSteps.length,
-      date: todayKey(), type: todaySched.type,
-    };
-    const updated = { ...history, [todayKey()]: entry };
-    setHistory(updated);
-    await saveData("history", updated);
-  }, [history, nightSteps.length, todaySched.type]);
-
-  const toggleM = async (i) => {
-    const mc = { ...mChecked, [i]: !mChecked[i] };
-    setMChecked(mc);
-    await persistDay(mc, nChecked, note);
-  };
-
-  const toggleN = async (i) => {
-    const nc = { ...nChecked, [i]: !nChecked[i] };
-    setNChecked(nc);
-    await persistDay(mChecked, nc, note);
-  };
-
-  const saveNote = async () => {
-    await persistDay(mChecked, nChecked, note);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
-  };
-
-  const addWater = async () => {
-    const w = Math.min(waterGlasses + 1, 12);
-    setWaterGlasses(w);
-    await saveData("water_" + todayKey(), w);
-  };
-
-  const waterTarget = 8;
-  const waterPct = (waterGlasses / waterTarget) * 100;
-
-  return (
+  return(
     <div>
-      {/* Header stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", marginBottom: "20px" }}>
-        <StatBox label="STREAK" value={`${streak}🔥`} color={C.gold} sub="days" />
-        <StatBox label="DAY" value={dayNumber} color={C.purple} sub="of journey" />
-        <StatBox label="TOTAL" value={totalDays} color={C.green} sub="completed" />
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"8px",marginBottom:"18px"}}>
+        <StatBox label="STREAK" value={`${streak}🔥`} color={C.gold} sub="days"/>
+        <StatBox label="DAY" value={dayNum} color={C.purple} sub="of journey"/>
+        <StatBox label="TOTAL" value={total} color={C.green} sub="done"/>
       </div>
 
-      {/* Motivation */}
-      <div style={{ background: C.goldDim, border: `1px solid ${C.goldBorder}`, borderRadius: "13px", padding: "12px 14px", marginBottom: "20px" }}>
-        <div style={{ fontSize: "9px", color: C.gold, letterSpacing: "2px", marginBottom: "5px" }}>TODAY'S REMINDER</div>
-        <div style={{ fontSize: "12px", color: C.textMid, lineHeight: "1.6", fontStyle: "italic" }}>"{motivation}"</div>
+      <div style={{background:C.goldDim,border:`1px solid ${C.goldBorder}`,borderRadius:"13px",padding:"12px 14px",marginBottom:"18px"}}>
+        <div style={{fontSize:"9px",color:C.gold,letterSpacing:"2px",marginBottom:"5px"}}>TODAY'S REMINDER</div>
+        <div style={{fontSize:"12px",color:C.textMid,lineHeight:"1.6",fontStyle:"italic"}}>"{motiv}"</div>
       </div>
 
-      {/* Weekly strip */}
-      <div style={{ display: "flex", gap: "4px", marginBottom: "20px" }}>
-        {SCHEDULE.map((s, i) => {
-          const isToday = i === getDayIndex();
-          const c = typeColor(s.type);
-          const entry = Object.values(history).find(e => {
-            const d = new Date(e.date);
-            return d.getDay() === (i === 6 ? 0 : i + 1);
-          });
-          return (
-            <div key={i} style={{
-              flex: 1, borderRadius: "10px", padding: "7px 0",
-              background: isToday ? `${c}20` : C.card,
-              border: `1px solid ${isToday ? c + "50" : C.cardBorder}`,
-              textAlign: "center",
-            }}>
-              <div style={{ fontSize: "8px", color: isToday ? c : C.textDim, letterSpacing: "0.5px" }}>{s.day}</div>
-              <div style={{ fontSize: "11px", marginTop: "3px" }}>
-                {s.type === "adaferin" ? "A" : s.type === "aziderm" ? "Z" : "R"}
-              </div>
-            </div>
-          );
+      <div style={{display:"flex",gap:"4px",marginBottom:"18px"}}>
+        {SCHEDULE.map((s,i)=>{
+          const isT=i===getDayIndex(),c=typeColor(s.type);
+          return <div key={i} style={{flex:1,borderRadius:"10px",padding:"7px 0",background:isT?`${c}20`:C.card,border:`1px solid ${isT?c+"50":C.cardBorder}`,textAlign:"center"}}>
+            <div style={{fontSize:"8px",color:isT?c:C.textDim}}>{s.day}</div>
+            <div style={{fontSize:"11px",marginTop:"2px",color:isT?c:C.textDim}}>{s.type==="adaferin"?"A":s.type==="aziderm"?"Z":"R"}</div>
+          </div>;
         })}
       </div>
 
-      {/* Water tracker */}
-      <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: "14px", padding: "14px 16px", marginBottom: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+      {/* Water */}
+      <div style={{background:C.card,border:`1px solid ${C.cardBorder}`,borderRadius:"14px",padding:"13px 14px",marginBottom:"18px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"8px"}}>
           <div>
-            <div style={{ fontSize: "10px", color: C.blue, letterSpacing: "2px", marginBottom: "2px" }}>💧 WATER TODAY</div>
-            <div style={{ fontSize: "12px", color: C.textDim }}>{waterGlasses}/{waterTarget} glasses · target 3.5L</div>
+            <div style={{fontSize:"10px",color:C.blue,letterSpacing:"2px",marginBottom:"2px"}}>💧 WATER TODAY</div>
+            <div style={{fontSize:"12px",color:C.textDim}}>{water}/{wTarget} glasses · target 3.5L</div>
           </div>
-          <button onClick={addWater} style={{
-            background: C.blueDim, border: `1px solid ${C.blue}40`, borderRadius: "50%",
-            width: "36px", height: "36px", color: C.blue, fontSize: "20px",
-            cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          }}>+</button>
+          <button onClick={addWater} style={{background:C.blueDim,border:`1px solid ${C.blue}40`,borderRadius:"50%",width:"36px",height:"36px",color:C.blue,fontSize:"20px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
         </div>
-        <div style={{ display: "flex", gap: "4px", marginBottom: "8px" }}>
-          {Array.from({ length: waterTarget }).map((_, i) => (
-            <div key={i} style={{
-              flex: 1, height: "8px", borderRadius: "4px",
-              background: i < waterGlasses ? C.blue : C.cardBorder,
-              transition: "background 0.3s",
-            }} />
-          ))}
+        <div style={{display:"flex",gap:"4px",marginBottom:"6px"}}>
+          {Array.from({length:wTarget}).map((_,i)=><div key={i} style={{flex:1,height:"8px",borderRadius:"4px",background:i<water?C.blue:C.cardBorder,transition:"background 0.3s"}}/>)}
         </div>
-        {waterGlasses >= waterTarget && <div style={{ fontSize: "10px", color: C.blue, textAlign: "center", letterSpacing: "1px" }}>✓ TARGET MET</div>}
+        {water>=wTarget&&<div style={{fontSize:"10px",color:C.blue,textAlign:"center",letterSpacing:"1px"}}>✓ TARGET MET</div>}
       </div>
 
-      {/* Morning routine */}
-      <div style={{ marginBottom: "24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-          <div style={{ fontSize: "11px", letterSpacing: "2px", color: C.gold }}>
-            ☀️ MORNING {mComplete && "✓"}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "11px", color: C.textDim }}>{mDone}/{MORNING_STEPS.length}</span>
-            <div style={{ width: "60px" }}><ProgressBar value={mDone} max={MORNING_STEPS.length} /></div>
+      {/* Morning */}
+      <div style={{marginBottom:"22px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
+          <div style={{fontSize:"11px",letterSpacing:"2px",color:C.gold}}>☀️ MORNING {mDone===MORNING_STEPS.length&&"✓"}</div>
+          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+            <span style={{fontSize:"11px",color:C.textDim}}>{mDone}/{MORNING_STEPS.length}</span>
+            <div style={{width:"60px"}}><PBar value={mDone} max={MORNING_STEPS.length}/></div>
           </div>
         </div>
-        {MORNING_STEPS.map((s, i) => (
-          <StepCard key={i} step={s} color={C.gold} checked={!!mChecked[i]} onToggle={() => toggleM(i)} />
-        ))}
+        {MORNING_STEPS.map((s,i)=><StepCard key={i} step={s} color={C.gold} checked={!!mC[i]} onToggle={()=>tM(i)}/>)}
       </div>
 
-      {/* Night routine */}
-      <div style={{ marginBottom: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-          <div style={{ fontSize: "11px", letterSpacing: "2px", color: nightColor }}>
-            🌙 {nightLabel.toUpperCase()} {nComplete && "✓"}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "11px", color: C.textDim }}>{nDone}/{nightSteps.length}</span>
-            <div style={{ width: "60px" }}><ProgressBar value={nDone} max={nightSteps.length} color={nightColor} /></div>
+      {/* Night */}
+      <div style={{marginBottom:"18px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"10px"}}>
+          <div style={{fontSize:"11px",letterSpacing:"2px",color:nc}}>🌙 {nl.toUpperCase()} {nDone===ns.length&&"✓"}</div>
+          <div style={{display:"flex",alignItems:"center",gap:"8px"}}>
+            <span style={{fontSize:"11px",color:C.textDim}}>{nDone}/{ns.length}</span>
+            <div style={{width:"60px"}}><PBar value={nDone} max={ns.length} color={nc}/></div>
           </div>
         </div>
-        {nightSteps.map((s, i) => (
-          <StepCard key={i} step={s} color={nightColor} checked={!!nChecked[i]} onToggle={() => toggleN(i)} />
-        ))}
+        {ns.map((s,i)=><StepCard key={i} step={s} color={nc} checked={!!nC[i]} onToggle={()=>tN(i)}/>)}
       </div>
 
-      {/* Daily note */}
-      <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: "14px", padding: "14px", marginBottom: "8px" }}>
-        <div onClick={() => setShowNote(!showNote)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-          <div style={{ fontSize: "10px", color: C.textMid, letterSpacing: "2px" }}>📝 DAILY NOTE</div>
-          <span style={{ fontSize: "12px", color: C.textDim }}>{showNote ? "▲" : "▼"}</span>
+      {/* Note */}
+      <div style={{background:C.card,border:`1px solid ${C.cardBorder}`,borderRadius:"13px",padding:"13px",marginBottom:"8px"}}>
+        <div onClick={()=>setShowNote(!showNote)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+          <div style={{fontSize:"10px",color:C.textMid,letterSpacing:"2px"}}>📝 DAILY NOTE</div>
+          <span style={{fontSize:"12px",color:C.textDim}}>{showNote?"▲":"▼"}</span>
         </div>
-        {showNote && (
-          <div style={{ marginTop: "10px" }}>
-            <textarea
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder="How's your skin today? Any irritation, changes, improvements..."
-              style={{
-                width: "100%", background: C.bg2, border: `1px solid ${C.cardBorder}`,
-                borderRadius: "10px", padding: "10px", color: C.text, fontSize: "13px",
-                fontFamily: "inherit", resize: "none", height: "80px", boxSizing: "border-box",
-                outline: "none",
-              }}
-            />
-            <button onClick={saveNote} style={{
-              background: saved ? C.greenDim : C.goldDim, border: `1px solid ${saved ? C.green : C.gold}40`,
-              color: saved ? C.green : C.gold, borderRadius: "8px", padding: "7px 16px",
-              fontSize: "11px", cursor: "pointer", fontFamily: "inherit", marginTop: "6px", letterSpacing: "1px",
-            }}>{saved ? "✓ SAVED" : "SAVE NOTE"}</button>
-          </div>
-        )}
+        {showNote&&<div style={{marginTop:"10px"}}>
+          <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="How's your skin today? Any irritation, improvements..." style={{width:"100%",background:C.bg2,border:`1px solid ${C.cardBorder}`,borderRadius:"10px",padding:"10px",color:C.text,fontSize:"13px",resize:"none",height:"80px",boxSizing:"border-box",outline:"none"}}/>
+          <button onClick={saveNote} style={{background:saved?C.greenDim:C.goldDim,border:`1px solid ${saved?C.green:C.gold}40`,color:saved?C.green:C.gold,borderRadius:"8px",padding:"7px 16px",fontSize:"11px",cursor:"pointer",marginTop:"6px",letterSpacing:"1px"}}>{saved?"✓ SAVED":"SAVE NOTE"}</button>
+        </div>}
       </div>
     </div>
   );
 }
 
-// ─── TRACKER SCREEN ───────────────────────────────────────────────────────────
-function TrackerScreen({ history }) {
-  const [view, setView] = useState("calendar");
+// ── TRACKER ────────────────────────────────────────────────────────────────
+function TrackerScreen({history}){
+  const[view,setView]=useState("calendar");
+  const streak=calcStreak(history),total=calcTotal(history);
+  const entries=Object.values(history).sort((a,b)=>b.date.localeCompare(a.date));
+  const start=getStart(history),daysSince=daysBetween(start,todayKey());
+  const phase=daysSince<28?1:daysSince<56?2:3;
+  const mPct=entries.length>0?Math.round(entries.filter(e=>e.morningDone).length/entries.length*100):0;
+  const nPct=entries.length>0?Math.round(entries.filter(e=>e.nightDone).length/entries.length*100):0;
+  const adaDone=entries.filter(e=>e.type==="adaferin"&&e.nightDone).length;
+  const aziDone=entries.filter(e=>e.type==="aziderm"&&e.nightDone).length;
 
-  const streak = calcStreak(history);
-  const totalDays = calcTotalDays(history);
-  const entries = Object.values(history).sort((a, b) => b.date.localeCompare(a.date));
-
-  // Build last 35 days for calendar
-  const calDays = [];
-  for (let i = 34; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const key = d.toISOString().split("T")[0];
-    const entry = history[key];
-    calDays.push({ key, entry, isToday: key === todayKey(), dayNum: d.getDate() });
+  const calDays=[];
+  for(let i=34;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const key=d.toISOString().split("T")[0];
+    calDays.push({key,entry:history[key],isToday:key===todayKey(),dayNum:d.getDate()});
   }
 
-  const morningPct = entries.length > 0
-    ? Math.round((entries.filter(e => e.morningDone).length / entries.length) * 100) : 0;
-  const nightPct = entries.length > 0
-    ? Math.round((entries.filter(e => e.nightDone).length / entries.length) * 100) : 0;
-
-  const adaferinDone = entries.filter(e => e.type === "adaferin" && e.nightDone).length;
-  const azidermDone = entries.filter(e => e.type === "aziderm" && e.nightDone).length;
-
-  // Determine current phase
-  const startDate = getStartDate(history);
-  const daysSinceStart = getDaysBetween(startDate, todayKey());
-  const currentPhase = daysSinceStart < 28 ? 1 : daysSinceStart < 56 ? 2 : 3;
-
-  return (
+  return(
     <div>
-      <div style={{ marginBottom: "20px" }}>
-        <div style={{ fontSize: "11px", letterSpacing: "3px", color: C.textDim, marginBottom: "6px" }}>PROGRESS</div>
-        <div style={{ fontSize: "26px", color: C.white, fontFamily: "'Georgia',serif" }}>Your Journey</div>
+      <div style={{marginBottom:"18px"}}>
+        <div style={{fontSize:"11px",letterSpacing:"3px",color:C.textDim,marginBottom:"6px"}}>PROGRESS</div>
+        <div style={{fontSize:"26px",color:C.white,fontFamily:"Georgia,serif"}}>Your Journey</div>
       </div>
 
-      {/* Big stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "20px" }}>
-        <div style={{ background: C.goldDim, border: `1px solid ${C.goldBorder}`, borderRadius: "16px", padding: "18px", textAlign: "center" }}>
-          <div style={{ fontSize: "42px", lineHeight: 1, color: C.gold, fontFamily: "'Georgia',serif" }}>{streak}</div>
-          <div style={{ fontSize: "10px", color: C.gold, letterSpacing: "2px", marginTop: "4px" }}>DAY STREAK 🔥</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px",marginBottom:"18px"}}>
+        <div style={{background:C.goldDim,border:`1px solid ${C.goldBorder}`,borderRadius:"16px",padding:"18px",textAlign:"center"}}>
+          <div style={{fontSize:"42px",lineHeight:1,color:C.gold,fontFamily:"Georgia,serif"}}>{streak}</div>
+          <div style={{fontSize:"10px",color:C.gold,letterSpacing:"2px",marginTop:"4px"}}>STREAK 🔥</div>
         </div>
-        <div style={{ background: C.greenDim, border: `1px solid ${C.greenBorder}`, borderRadius: "16px", padding: "18px", textAlign: "center" }}>
-          <div style={{ fontSize: "42px", lineHeight: 1, color: C.green, fontFamily: "'Georgia',serif" }}>{totalDays}</div>
-          <div style={{ fontSize: "10px", color: C.green, letterSpacing: "2px", marginTop: "4px" }}>DAYS DONE ✓</div>
+        <div style={{background:C.greenDim,border:`1px solid ${C.greenBorder}`,borderRadius:"16px",padding:"18px",textAlign:"center"}}>
+          <div style={{fontSize:"42px",lineHeight:1,color:C.green,fontFamily:"Georgia,serif"}}>{total}</div>
+          <div style={{fontSize:"10px",color:C.green,letterSpacing:"2px",marginTop:"4px"}}>DAYS DONE ✓</div>
         </div>
       </div>
 
-      {/* Phase tracker */}
-      <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: "14px", padding: "16px", marginBottom: "20px" }}>
-        <div style={{ fontSize: "10px", color: C.textDim, letterSpacing: "2px", marginBottom: "12px" }}>CURRENT PHASE</div>
-        <div style={{ display: "flex", gap: "0" }}>
-          {PHASES.map((ph, i) => (
-            <div key={ph.id} style={{ flex: 1, textAlign: "center", position: "relative" }}>
-              <div style={{
-                width: "28px", height: "28px", borderRadius: "50%", margin: "0 auto 6px",
-                background: currentPhase >= ph.id ? `${ph.color}25` : C.bg2,
-                border: `2px solid ${currentPhase >= ph.id ? ph.color : C.cardBorder}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "12px", color: currentPhase >= ph.id ? ph.color : C.textDim,
-                fontWeight: "700",
-              }}>{currentPhase > ph.id ? "✓" : ph.id}</div>
-              {i < 2 && <div style={{ position: "absolute", top: "14px", left: "65%", right: "-35%", height: "2px", background: currentPhase > ph.id ? ph.color : C.cardBorder }} />}
-              <div style={{ fontSize: "9px", color: currentPhase === ph.id ? ph.color : C.textDim, letterSpacing: "0.5px" }}>{ph.title}</div>
-              <div style={{ fontSize: "9px", color: C.textDim }}>{ph.weeks}</div>
+      {/* Phase */}
+      <div style={{background:C.card,border:`1px solid ${C.cardBorder}`,borderRadius:"14px",padding:"14px",marginBottom:"18px"}}>
+        <div style={{fontSize:"10px",color:C.textDim,letterSpacing:"2px",marginBottom:"12px"}}>CURRENT PHASE</div>
+        <div style={{display:"flex",gap:"0"}}>
+          {PHASES.map((ph,i)=>(
+            <div key={ph.id} style={{flex:1,textAlign:"center",position:"relative"}}>
+              <div style={{width:"28px",height:"28px",borderRadius:"50%",margin:"0 auto 6px",background:phase>=ph.id?`${ph.color}25`:C.bg2,border:`2px solid ${phase>=ph.id?ph.color:C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",color:phase>=ph.id?ph.color:C.textDim,fontWeight:"700"}}>{phase>ph.id?"✓":ph.id}</div>
+              {i<2&&<div style={{position:"absolute",top:"14px",left:"65%",right:"-35%",height:"2px",background:phase>ph.id?ph.color:C.cardBorder}}/>}
+              <div style={{fontSize:"9px",color:phase===ph.id?ph.color:C.textDim}}>{ph.title}</div>
+              <div style={{fontSize:"8px",color:C.textDim}}>{ph.weeks}</div>
             </div>
           ))}
         </div>
-        <div style={{ marginTop: "12px", background: C.bg2, borderRadius: "10px", padding: "10px 12px" }}>
-          <div style={{ fontSize: "12px", color: PHASES[currentPhase - 1].color, marginBottom: "3px" }}>Phase {currentPhase}: {PHASES[currentPhase - 1].title}</div>
-          <div style={{ fontSize: "12px", color: C.textMid, lineHeight: "1.5" }}>{PHASES[currentPhase - 1].desc}</div>
+        <div style={{marginTop:"10px",background:C.bg2,borderRadius:"10px",padding:"10px 12px"}}>
+          <div style={{fontSize:"12px",color:PHASES[phase-1].color,marginBottom:"3px"}}>{PHASES[phase-1].title}: {PHASES[phase-1].weeks}</div>
+          <div style={{fontSize:"12px",color:C.textMid,lineHeight:"1.5"}}>{PHASES[phase-1].desc}</div>
         </div>
       </div>
 
-      {/* View tabs */}
-      <div style={{ display: "flex", gap: "6px", marginBottom: "16px" }}>
-        {[["calendar", "Calendar"], ["stats", "Stats"], ["log", "Log"]].map(([id, label]) => (
-          <Pill key={id} active={view === id} color={C.gold} onClick={() => setView(id)}>{label}</Pill>
-        ))}
+      <div style={{display:"flex",gap:"6px",marginBottom:"14px"}}>
+        {[["calendar","Calendar"],["stats","Stats"],["log","Log"]].map(([id,l])=><Pill key={id} active={view===id} color={C.gold} onClick={()=>setView(id)}>{l}</Pill>)}
       </div>
 
-      {/* CALENDAR VIEW */}
-      {view === "calendar" && (
+      {view==="calendar"&&(
         <div>
-          <div style={{ fontSize: "11px", color: C.textDim, marginBottom: "10px", letterSpacing: "1px" }}>LAST 35 DAYS</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", marginBottom: "12px" }}>
-            {["M","T","W","T","F","S","S"].map((d, i) => (
-              <div key={i} style={{ textAlign: "center", fontSize: "9px", color: C.textDim, paddingBottom: "4px" }}>{d}</div>
-            ))}
-            {calDays.map((d, i) => {
-              const m = d.entry?.morningDone;
-              const n = d.entry?.nightDone;
-              const both = m && n;
-              const one = (m || n) && !both;
-              const none = !m && !n;
-              const bg = both ? C.green : one ? C.gold : "transparent";
-              return (
-                <div key={i} style={{
-                  aspectRatio: "1", borderRadius: "6px",
-                  background: both ? `${C.green}25` : one ? `${C.gold}20` : d.isToday ? `${C.purple}15` : "transparent",
-                  border: `1px solid ${both ? C.green + "40" : one ? C.gold + "30" : d.isToday ? C.purple + "40" : C.cardBorder}`,
-                  display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column",
-                }}>
-                  <div style={{ fontSize: "9px", color: both ? C.green : one ? C.gold : d.isToday ? C.purple : C.textDim }}>
-                    {d.dayNum}
-                  </div>
-                  {both && <div style={{ fontSize: "6px", color: C.green }}>✓✓</div>}
-                  {one && <div style={{ fontSize: "6px", color: C.gold }}>✓</div>}
-                </div>
-              );
+          <div style={{fontSize:"11px",color:C.textDim,marginBottom:"8px",letterSpacing:"1px"}}>LAST 35 DAYS</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:"3px",marginBottom:"10px"}}>
+            {["M","T","W","T","F","S","S"].map((d,i)=><div key={i} style={{textAlign:"center",fontSize:"9px",color:C.textDim,paddingBottom:"3px"}}>{d}</div>)}
+            {calDays.map((d,i)=>{
+              const m=d.entry?.morningDone,n=d.entry?.nightDone,both=m&&n,one=(m||n)&&!both;
+              return <div key={i} style={{aspectRatio:"1",borderRadius:"5px",background:both?`${C.green}25`:one?`${C.gold}20`:d.isToday?`${C.purple}15`:"transparent",border:`1px solid ${both?C.green+"40":one?C.gold+"30":d.isToday?C.purple+"40":C.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column"}}>
+                <div style={{fontSize:"8px",color:both?C.green:one?C.gold:d.isToday?C.purple:C.textDim}}>{d.dayNum}</div>
+                {both&&<div style={{fontSize:"6px",color:C.green}}>✓✓</div>}
+                {one&&<div style={{fontSize:"6px",color:C.gold}}>✓</div>}
+              </div>;
             })}
           </div>
-          <div style={{ display: "flex", gap: "12px", fontSize: "10px", color: C.textDim }}>
-            <span><span style={{ color: C.green }}>■</span> Both done</span>
-            <span><span style={{ color: C.gold }}>■</span> One done</span>
-            <span><span style={{ color: C.purple }}>■</span> Today</span>
+          <div style={{display:"flex",gap:"12px",fontSize:"10px",color:C.textDim}}>
+            <span><span style={{color:C.green}}>■</span> Both</span>
+            <span><span style={{color:C.gold}}>■</span> One</span>
+            <span><span style={{color:C.purple}}>■</span> Today</span>
           </div>
         </div>
       )}
 
-      {/* STATS VIEW */}
-      {view === "stats" && (
+      {view==="stats"&&(
         <div>
-          {[
-            { label: "Morning Routine Completion", val: morningPct, color: C.gold },
-            { label: "Night Routine Completion", val: nightPct, color: C.purple },
-            { label: "Adaferin Nights Done", val: adaferinDone, max: Math.ceil(totalDays * 3 / 7), color: C.gold, isCount: true },
-            { label: "Aziderm Nights Done", val: azidermDone, max: Math.ceil(totalDays * 2 / 7), color: C.purple, isCount: true },
-          ].map((s, i) => (
-            <div key={i} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: "13px", padding: "14px 16px", marginBottom: "8px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                <span style={{ fontSize: "12px", color: C.textMid }}>{s.label}</span>
-                <span style={{ fontSize: "14px", color: s.color, fontWeight: "600" }}>
-                  {s.isCount ? `${s.val}×` : `${s.val}%`}
-                </span>
+          {[{label:"Morning Completion",val:mPct,color:C.gold,max:100},{label:"Night Completion",val:nPct,color:C.purple,max:100},{label:"Adaferin Nights",val:adaDone,color:C.gold,max:Math.max(adaDone,1),isCount:true},{label:"Aziderm Nights",val:aziDone,color:C.purple,max:Math.max(aziDone,1),isCount:true}].map((s,i)=>(
+            <div key={i} style={{background:C.card,border:`1px solid ${C.cardBorder}`,borderRadius:"13px",padding:"13px 14px",marginBottom:"7px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:"7px"}}>
+                <span style={{fontSize:"12px",color:C.textMid}}>{s.label}</span>
+                <span style={{fontSize:"14px",color:s.color,fontWeight:"600"}}>{s.isCount?`${s.val}×`:`${s.val}%`}</span>
               </div>
-              <ProgressBar value={s.val} max={s.isCount ? (s.max || 1) : 100} color={s.color} height={4} />
+              <PBar value={s.val} max={s.max} color={s.color} h={4}/>
             </div>
           ))}
-          <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: "13px", padding: "14px 16px" }}>
-            <div style={{ fontSize: "10px", color: C.textDim, letterSpacing: "2px", marginBottom: "10px" }}>BEST STREAK VS CURRENT</div>
-            <div style={{ display: "flex", gap: "16px" }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "28px", color: C.gold, fontFamily: "'Georgia',serif" }}>{streak}</div>
-                <div style={{ fontSize: "10px", color: C.textDim }}>Current 🔥</div>
-              </div>
-              <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
-                <ProgressBar value={streak} max={Math.max(streak, 30)} color={C.gold} height={6} />
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
-      {/* LOG VIEW */}
-      {view === "log" && (
+      {view==="log"&&(
         <div>
-          {entries.length === 0 ? (
-            <div style={{ textAlign: "center", color: C.textDim, padding: "40px 0", fontSize: "14px" }}>
-              Complete today's routine to start your log
-            </div>
-          ) : entries.slice(0, 20).map((e, i) => {
-            const c = typeColor(e.type);
-            return (
-              <div key={i} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: "13px", padding: "12px 14px", marginBottom: "8px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
-                  <div>
-                    <span style={{ fontSize: "13px", color: C.white }}>{formatDate(e.date)}</span>
-                    <span style={{ fontSize: "10px", color: C.textDim, marginLeft: "8px" }}>{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][new Date(e.date).getDay() === 0 ? 6 : new Date(e.date).getDay() - 1]}</span>
-                  </div>
-                  <Tag color={c}>{typeLabel(e.type).toUpperCase()}</Tag>
-                </div>
-                <div style={{ display: "flex", gap: "8px", marginBottom: e.note ? "8px" : "0" }}>
-                  <div style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "6px", background: e.morningDone ? `${C.gold}15` : C.bg2, color: e.morningDone ? C.gold : C.textDim, border: `1px solid ${e.morningDone ? C.gold + "30" : C.cardBorder}` }}>
-                    {e.morningDone ? "☀️ AM ✓" : "☀️ AM —"}
-                  </div>
-                  <div style={{ fontSize: "11px", padding: "3px 10px", borderRadius: "6px", background: e.nightDone ? `${c}15` : C.bg2, color: e.nightDone ? c : C.textDim, border: `1px solid ${e.nightDone ? c + "30" : C.cardBorder}` }}>
-                    {e.nightDone ? "🌙 PM ✓" : "🌙 PM —"}
-                  </div>
-                </div>
-                {e.note && (
-                  <div style={{ fontSize: "11px", color: C.textMid, fontStyle: "italic", marginTop: "6px", paddingTop: "6px", borderTop: `1px solid ${C.cardBorder}` }}>
-                    "{e.note}"
-                  </div>
-                )}
+          {entries.length===0?<div style={{textAlign:"center",color:C.textDim,padding:"40px 0",fontSize:"14px"}}>Complete today's routine to start your log</div>
+          :entries.slice(0,20).map((e,i)=>{
+            const c=typeColor(e.type);
+            return <div key={i} style={{background:C.card,border:`1px solid ${C.cardBorder}`,borderRadius:"13px",padding:"12px 14px",marginBottom:"7px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"6px"}}>
+                <span style={{fontSize:"13px",color:C.white}}>{fmtDate(e.date)}</span>
+                <Tag color={c}>{typeLabel(e.type).toUpperCase()}</Tag>
               </div>
-            );
+              <div style={{display:"flex",gap:"6px",marginBottom:e.note?"7px":"0"}}>
+                <div style={{fontSize:"11px",padding:"3px 10px",borderRadius:"6px",background:e.morningDone?`${C.gold}15`:C.bg2,color:e.morningDone?C.gold:C.textDim,border:`1px solid ${e.morningDone?C.gold+"30":C.cardBorder}`}}>{e.morningDone?"☀️ AM ✓":"☀️ AM —"}</div>
+                <div style={{fontSize:"11px",padding:"3px 10px",borderRadius:"6px",background:e.nightDone?`${c}15`:C.bg2,color:e.nightDone?c:C.textDim,border:`1px solid ${e.nightDone?c+"30":C.cardBorder}`}}>{e.nightDone?"🌙 PM ✓":"🌙 PM —"}</div>
+              </div>
+              {e.note&&<div style={{fontSize:"11px",color:C.textMid,fontStyle:"italic",paddingTop:"6px",borderTop:`1px solid ${C.cardBorder}`}}>"{e.note}"</div>}
+            </div>;
           })}
         </div>
       )}
@@ -736,47 +467,30 @@ function TrackerScreen({ history }) {
   );
 }
 
-// ─── ROUTINE SCREEN ───────────────────────────────────────────────────────────
-function RoutineScreen() {
-  const [active, setActive] = useState("morning");
-  const tabs = [
-    { id: "morning", label: "Morning", color: C.gold },
-    { id: "adaferin", label: "Adaferin", color: C.gold },
-    { id: "aziderm", label: "Aziderm", color: C.purple },
-    { id: "recovery", label: "Recovery", color: C.green },
-  ];
-  const steps = active === "morning" ? MORNING_STEPS : active === "adaferin" ? ADAFERIN_STEPS : active === "aziderm" ? AZIDERM_STEPS : RECOVERY_STEPS;
-  const ac = tabs.find(t => t.id === active)?.color || C.gold;
-  const subs = {
-    morning: "Every single day — no exceptions",
-    adaferin: "Mon & Thu — build to Mon, Thu, Sat at week 5",
-    aziderm: "Tue & Sat — Alpha Arbutin from Week 4 only",
-    recovery: "Wed, Fri, Sun — zero actives, just heal",
-  };
-  return (
+// ── ROUTINE ────────────────────────────────────────────────────────────────
+function RoutineScreen(){
+  const[active,setActive]=useState("morning");
+  const tabs=[{id:"morning",l:"Morning",c:C.gold},{id:"adaferin",l:"Adaferin",c:C.gold},{id:"aziderm",l:"Aziderm",c:C.purple},{id:"recovery",l:"Recovery",c:C.green}];
+  const steps=active==="morning"?MORNING_STEPS:active==="adaferin"?ADAFERIN_STEPS:active==="aziderm"?AZIDERM_STEPS:RECOVERY_STEPS;
+  const ac=tabs.find(t=>t.id===active)?.c||C.gold;
+  const subs={morning:"Every single day — no exceptions",adaferin:"Mon & Thu — build to Mon,Thu,Sat at week 5",aziderm:"Tue & Sat — Alpha Arbutin from Week 4",recovery:"Wed, Fri, Sun — zero actives"};
+  return(
     <div>
-      <div style={{ marginBottom: "20px" }}>
-        <div style={{ fontSize: "11px", letterSpacing: "3px", color: C.textDim, marginBottom: "6px" }}>ROUTINES</div>
-        <div style={{ fontSize: "26px", color: C.white, fontFamily: "'Georgia',serif" }}>Step by Step</div>
+      <div style={{marginBottom:"18px"}}>
+        <div style={{fontSize:"11px",letterSpacing:"3px",color:C.textDim,marginBottom:"6px"}}>ROUTINES</div>
+        <div style={{fontSize:"26px",color:C.white,fontFamily:"Georgia,serif"}}>Step by Step</div>
       </div>
-      <div style={{ display: "flex", gap: "6px", marginBottom: "16px", overflowX: "auto", paddingBottom: "4px" }}>
-        {tabs.map(t => <Pill key={t.id} active={active === t.id} color={t.color} onClick={() => setActive(t.id)}>{t.label}</Pill>)}
+      <div style={{display:"flex",gap:"6px",marginBottom:"14px",overflowX:"auto",paddingBottom:"4px"}}>
+        {tabs.map(t=><Pill key={t.id} active={active===t.id} color={t.c} onClick={()=>setActive(t.id)}>{t.l}</Pill>)}
       </div>
-      <div style={{ fontSize: "12px", color: C.textDim, marginBottom: "14px", fontStyle: "italic" }}>{subs[active]}</div>
-      {steps.map((s, i) => <StepCard key={`${active}-${i}`} step={s} color={ac} checked={false} onToggle={() => {}} />)}
-      <div style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: "14px", padding: "14px 16px", marginTop: "10px" }}>
-        <div style={{ fontSize: "10px", letterSpacing: "2px", color: C.gold, marginBottom: "10px" }}>⏱ WAIT TIMES</div>
-        {[
-          ["After cleanse → Adaferin", "10 mins (bone dry!)"],
-          ["After Adaferin → moisturiser", "10 mins"],
-          ["After cleanse → Aziderm", "5 mins"],
-          ["After Aziderm → moisturiser", "10 mins"],
-          ["After Vit C → moisturiser", "10 mins"],
-          ["After moisturiser → SPF", "1 min"],
-        ].map(([l, t], i, arr) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: i < arr.length - 1 ? `1px solid ${C.cardBorder}` : "none" }}>
-            <span style={{ fontSize: "12px", color: C.textMid }}>{l}</span>
-            <span style={{ fontSize: "12px", color: C.gold, fontWeight: "600" }}>{t}</span>
+      <div style={{fontSize:"12px",color:C.textDim,marginBottom:"13px",fontStyle:"italic"}}>{subs[active]}</div>
+      {steps.map((s,i)=><StepCard key={`${active}-${i}`} step={s} color={ac} checked={false} onToggle={()=>{}}/>)}
+      <div style={{background:C.card,border:`1px solid ${C.cardBorder}`,borderRadius:"13px",padding:"13px 14px",marginTop:"10px"}}>
+        <div style={{fontSize:"10px",letterSpacing:"2px",color:C.gold,marginBottom:"8px"}}>⏱ WAIT TIMES</div>
+        {[["After cleanse → Adaferin","10 mins (bone dry!)"],["After Adaferin → moisturiser","10 mins"],["After cleanse → Aziderm","5 mins"],["After Aziderm → moisturiser","10 mins"],["After Vit C → moisturiser","10 mins"],["After moisturiser → SPF","1 min"]].map(([l,t],i,arr)=>(
+          <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:i<arr.length-1?`1px solid ${C.cardBorder}`:"none"}}>
+            <span style={{fontSize:"12px",color:C.textMid}}>{l}</span>
+            <span style={{fontSize:"12px",color:C.gold,fontWeight:"600"}}>{t}</span>
           </div>
         ))}
       </div>
@@ -784,251 +498,206 @@ function RoutineScreen() {
   );
 }
 
-// ─── SHOP SCREEN ──────────────────────────────────────────────────────────────
-function ShopScreen({ bought, setBought }) {
-  const total = SHOPPING.reduce((s, i) => s + parseInt(i.price.replace("₹", "")), 0);
-  const spentTotal = SHOPPING.filter((_, i) => bought[i]).reduce((s, item) => s + parseInt(item.price.replace("₹", "")), 0);
-
-  const toggle = async (i) => {
-    const updated = { ...bought, [i]: !bought[i] };
-    setBought(updated);
-    await saveData("bought", updated);
-  };
-
-  return (
+// ── SHOP ───────────────────────────────────────────────────────────────────
+function ShopScreen({bought,setBought}){
+  const total=SHOPPING.reduce((s,i)=>s+parseInt(i.price.replace("₹","")),0);
+  const spent=SHOPPING.filter((_,i)=>bought[i]).reduce((s,item)=>s+parseInt(item.price.replace("₹","")),0);
+  const toggle=i=>{const u={...bought,[i]:!bought[i]};setBought(u);save("bought",u);};
+  return(
     <div>
-      <div style={{ marginBottom: "20px" }}>
-        <div style={{ fontSize: "11px", letterSpacing: "3px", color: C.textDim, marginBottom: "6px" }}>SHOPPING LIST</div>
-        <div style={{ fontSize: "26px", color: C.white, fontFamily: "'Georgia',serif", marginBottom: "4px" }}>Buy In This Order</div>
-        <div style={{ fontSize: "13px", color: C.textMid }}>
-          Spent: <span style={{ color: C.gold }}>₹{spentTotal}</span> <span style={{ color: C.textDim }}>/ ₹{total}</span>
-        </div>
+      <div style={{marginBottom:"18px"}}>
+        <div style={{fontSize:"11px",letterSpacing:"3px",color:C.textDim,marginBottom:"6px"}}>SHOPPING LIST</div>
+        <div style={{fontSize:"26px",color:C.white,fontFamily:"Georgia,serif",marginBottom:"4px"}}>Buy In Order</div>
+        <div style={{fontSize:"13px",color:C.textMid}}>Spent: <span style={{color:C.gold}}>₹{spent}</span> <span style={{color:C.textDim}}>/ ₹{total}</span></div>
       </div>
-      <div style={{ marginBottom: "16px" }}><ProgressBar value={spentTotal} max={total} color={C.gold} height={4} /></div>
-      {SHOPPING.map((item, i) => (
-        <div key={i} onClick={() => toggle(i)} style={{
-          background: bought[i] ? `${C.green}08` : C.card,
-          border: `1px solid ${bought[i] ? C.green + "28" : C.cardBorder}`,
-          borderRadius: "13px", padding: "13px 14px", marginBottom: "7px",
-          display: "flex", gap: "10px", alignItems: "center",
-          cursor: "pointer", opacity: bought[i] ? 0.5 : 1, transition: "all 0.2s",
-        }}>
-          <div style={{
-            width: "28px", height: "28px", borderRadius: "50%", flexShrink: 0,
-            background: bought[i] ? `${C.green}20` : `${item.c}15`,
-            border: `1px solid ${bought[i] ? C.green + "40" : item.c + "40"}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "11px", color: bought[i] ? C.green : item.c, fontWeight: "700",
-          }}>{bought[i] ? "✓" : item.p}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: "13px", color: C.white, textDecoration: bought[i] ? "line-through" : "none" }}>{item.product}</div>
-            <div style={{ fontSize: "11px", color: C.textDim }}><span style={{ color: C.textMid }}>{item.brand}</span> · {item.where}</div>
+      <div style={{marginBottom:"14px"}}><PBar value={spent} max={total} color={C.gold} h={4}/></div>
+      {SHOPPING.map((item,i)=>(
+        <div key={i} onClick={()=>toggle(i)} style={{background:bought[i]?`${C.green}08`:C.card,border:`1px solid ${bought[i]?C.green+"28":C.cardBorder}`,borderRadius:"13px",padding:"12px 14px",marginBottom:"7px",display:"flex",gap:"10px",alignItems:"center",cursor:"pointer",opacity:bought[i]?0.5:1,transition:"all 0.2s"}}>
+          <div style={{width:"28px",height:"28px",borderRadius:"50%",flexShrink:0,background:bought[i]?`${C.green}20`:`${item.c}15`,border:`1px solid ${bought[i]?C.green+"40":item.c+"40"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"11px",color:bought[i]?C.green:item.c,fontWeight:"700"}}>{bought[i]?"✓":item.p}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:"13px",color:C.white,textDecoration:bought[i]?"line-through":"none"}}>{item.product}</div>
+            <div style={{fontSize:"11px",color:C.textDim}}><span style={{color:C.textMid}}>{item.brand}</span> · {item.where}</div>
           </div>
-          <div style={{ fontSize: "14px", color: C.gold, fontWeight: "600" }}>{item.price}</div>
+          <div style={{fontSize:"14px",color:C.gold,fontWeight:"600"}}>{item.price}</div>
         </div>
       ))}
-      <div style={{ background: C.goldDim, border: `1px solid ${C.goldBorder}`, borderRadius: "13px", padding: "14px 16px", marginTop: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{background:C.goldDim,border:`1px solid ${C.goldBorder}`,borderRadius:"13px",padding:"13px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{ fontSize: "10px", color: C.gold, letterSpacing: "2px" }}>TOTAL</div>
-          <div style={{ fontSize: "11px", color: C.textDim, marginTop: "2px" }}>Already have Acne Star + Glyco 6</div>
+          <div style={{fontSize:"10px",color:C.gold,letterSpacing:"2px"}}>TOTAL</div>
+          <div style={{fontSize:"11px",color:C.textDim,marginTop:"2px"}}>Already have Acne Star + Glyco 6</div>
         </div>
-        <div style={{ fontSize: "24px", color: C.gold, fontFamily: "'Georgia',serif" }}>₹3,358</div>
+        <div style={{fontSize:"24px",color:C.gold,fontFamily:"Georgia,serif"}}>₹3,358</div>
       </div>
     </div>
   );
 }
 
-// ─── HEALTH SCREEN ────────────────────────────────────────────────────────────
-function HealthScreen() {
-  const [tab, setTab] = useState("supps");
-  return (
+// ── HEALTH ─────────────────────────────────────────────────────────────────
+function HealthScreen(){
+  const[tab,setTab]=useState("supps");
+  return(
     <div>
-      <div style={{ marginBottom: "20px" }}>
-        <div style={{ fontSize: "11px", letterSpacing: "3px", color: C.textDim, marginBottom: "6px" }}>INSIDE-OUT</div>
-        <div style={{ fontSize: "26px", color: C.white, fontFamily: "'Georgia',serif" }}>Health & Diet</div>
+      <div style={{marginBottom:"18px"}}>
+        <div style={{fontSize:"11px",letterSpacing:"3px",color:C.textDim,marginBottom:"6px"}}>INSIDE-OUT</div>
+        <div style={{fontSize:"26px",color:C.white,fontFamily:"Georgia,serif"}}>Health & Diet</div>
       </div>
-      <div style={{ display: "flex", gap: "6px", marginBottom: "18px" }}>
-        {[["supps","Supplements"],["eat","Eat"],["avoid","Avoid"],["clinic","Clinic"]].map(([id,l]) => (
-          <Pill key={id} active={tab===id} color={C.green} onClick={() => setTab(id)}>{l}</Pill>
+      <div style={{display:"flex",gap:"6px",marginBottom:"16px",flexWrap:"wrap"}}>
+        {[["supps","Supplements"],["eat","Eat"],["avoid","Avoid"],["clinic","Clinic"]].map(([id,l])=><Pill key={id} active={tab===id} color={C.green} onClick={()=>setTab(id)}>{l}</Pill>)}
+      </div>
+
+      {tab==="supps"&&<div>
+        {SUPPLEMENTS.map((s,i)=>(
+          <div key={i} style={{background:C.card,border:`1px solid ${C.cardBorder}`,borderRadius:"13px",padding:"12px 14px",marginBottom:"7px",display:"flex",gap:"10px"}}>
+            <div style={{background:s.time==="AM"?C.goldDim:C.purpleDim,border:`1px solid ${s.time==="AM"?C.gold:C.purple}35`,borderRadius:"8px",padding:"4px 8px",fontSize:"10px",color:s.time==="AM"?C.gold:C.purple,letterSpacing:"1px",fontWeight:"700",flexShrink:0,alignSelf:"flex-start",marginTop:"2px"}}>{s.time}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:"13px",color:C.white,marginBottom:"3px"}}>{s.name}</div>
+              <div style={{fontSize:"11px",color:C.textDim,marginBottom:"3px"}}>{s.why}</div>
+              <div style={{fontSize:"11px",color:C.gold}}>→ {s.brand}</div>
+            </div>
+          </div>
         ))}
-      </div>
-
-      {tab === "supps" && (
-        <div>
-          {SUPPLEMENTS.map((s, i) => (
-            <div key={i} style={{ background: C.card, border: `1px solid ${C.cardBorder}`, borderRadius: "13px", padding: "13px 14px", marginBottom: "7px", display: "flex", gap: "10px" }}>
-              <div style={{ background: s.time==="AM"?C.goldDim:C.purpleDim, border:`1px solid ${s.time==="AM"?C.gold:C.purple}35`, borderRadius:"8px", padding:"4px 8px", fontSize:"10px", color:s.time==="AM"?C.gold:C.purple, letterSpacing:"1px", fontWeight:"700", flexShrink:0, alignSelf:"flex-start", marginTop:"2px" }}>{s.time}</div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:"13px", color:C.white, marginBottom:"3px" }}>{s.name}</div>
-                <div style={{ fontSize:"11px", color:C.textDim, marginBottom:"3px" }}>{s.why}</div>
-                <div style={{ fontSize:"11px", color:C.gold }}>→ {s.brand}</div>
-              </div>
-            </div>
-          ))}
-          <div style={{ background:C.blueDim, border:`1px solid ${C.blue}25`, borderRadius:"13px", padding:"13px 14px", marginTop:"4px" }}>
-            <div style={{ fontSize:"10px", color:C.blue, letterSpacing:"2px", marginBottom:"5px" }}>💧 WATER DAILY</div>
-            <div style={{ fontSize:"13px", color:C.textMid }}>3.5–4 litres minimum. Track it in Today tab. Non-negotiable with this many actives.</div>
-          </div>
+        <div style={{background:`${C.blue}10`,border:`1px solid ${C.blue}25`,borderRadius:"13px",padding:"13px 14px",marginTop:"4px"}}>
+          <div style={{fontSize:"10px",color:C.blue,letterSpacing:"2px",marginBottom:"5px"}}>💧 WATER DAILY</div>
+          <div style={{fontSize:"13px",color:C.textMid}}>3.5–4 litres minimum. Non-negotiable with this many actives.</div>
         </div>
-      )}
+      </div>}
 
-      {tab === "eat" && (
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"8px" }}>
-          {[
-            {food:"Amla daily", why:"Highest Vit C → collagen"},
-            {food:"Cooked tomatoes", why:"Lycopene → UV pigmentation"},
-            {food:"Pumpkin seeds", why:"Zinc → fights acne bacteria"},
-            {food:"Sweet potato", why:"Beta-carotene → actives"},
-            {food:"Spinach daily", why:"Iron → skin oxygenation"},
-            {food:"Lemon water AM", why:"Vit C flush + gut clarity"},
-          ].map((item,i)=>(
-            <div key={i} style={{ background:C.greenDim, border:`1px solid ${C.green}20`, borderRadius:"13px", padding:"13px" }}>
-              <div style={{ fontSize:"13px", color:C.green, marginBottom:"5px" }}>✓ {item.food}</div>
-              <div style={{ fontSize:"11px", color:C.textDim }}>{item.why}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      {tab==="eat"&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+        {[{f:"Amla daily",w:"Highest Vit C → collagen"},{f:"Cooked tomatoes",w:"Lycopene → UV pigmentation"},{f:"Pumpkin seeds",w:"Zinc → fights acne"},{f:"Sweet potato",w:"Beta-carotene → actives"},{f:"Spinach daily",w:"Iron → skin glow"},{f:"Lemon water AM",w:"Vit C flush + gut"}].map((item,i)=>(
+          <div key={i} style={{background:C.greenDim,border:`1px solid ${C.green}20`,borderRadius:"13px",padding:"12px"}}>
+            <div style={{fontSize:"13px",color:C.green,marginBottom:"4px"}}>✓ {item.f}</div>
+            <div style={{fontSize:"11px",color:C.textDim}}>{item.w}</div>
+          </div>
+        ))}
+      </div>}
 
-      {tab === "avoid" && (
-        <div>
-          {[
-            {food:"Dairy (milk, paneer, cheese)", why:"#1 hidden acne trigger — spikes IGF-1 hormone"},
-            {food:"White rice, maida, bread", why:"Blood sugar spikes → insulin → acne"},
-            {food:"Packaged snacks & sweets", why:"Inflammation → deeper PIH"},
-            {food:"Tea/coffee with milk", why:"Caffeine dehydrates + dairy combo"},
-          ].map((item,i)=>(
-            <div key={i} style={{ background:C.redDim, border:`1px solid ${C.red}20`, borderRadius:"13px", padding:"13px 14px", marginBottom:"7px" }}>
-              <div style={{ fontSize:"13px", color:"#e09090", marginBottom:"3px" }}>✗ {item.food}</div>
-              <div style={{ fontSize:"11px", color:C.textDim }}>{item.why}</div>
-            </div>
-          ))}
-          <div style={{ background:C.redDim, border:`1px solid ${C.red}30`, borderRadius:"13px", padding:"14px", marginTop:"4px" }}>
-            <div style={{ fontSize:"10px", color:C.red, letterSpacing:"2px", marginBottom:"7px" }}>⚠️ SINGLE BIGGEST CHANGE</div>
-            <div style={{ fontSize:"13px", color:C.textMid, lineHeight:"1.6" }}>Cut dairy completely. Replace milk with oat milk or almond milk. For Indian vegetarians with acne, dairy is almost always the silent culprit. See difference in <strong style={{color:C.white}}>3–4 weeks.</strong></div>
+      {tab==="avoid"&&<div>
+        {[{f:"Dairy (milk, paneer, cheese)",w:"#1 hidden acne trigger — spikes IGF-1"},{f:"White rice, maida, bread",w:"Blood sugar → insulin → acne"},{f:"Packaged snacks & sweets",w:"Inflammation → deeper PIH"},{f:"Tea/coffee with milk",w:"Caffeine + dairy combo"}].map((item,i)=>(
+          <div key={i} style={{background:C.redDim,border:`1px solid ${C.red}20`,borderRadius:"13px",padding:"12px 14px",marginBottom:"7px"}}>
+            <div style={{fontSize:"13px",color:"#e09090",marginBottom:"3px"}}>✗ {item.f}</div>
+            <div style={{fontSize:"11px",color:C.textDim}}>{item.w}</div>
           </div>
+        ))}
+        <div style={{background:C.redDim,border:`1px solid ${C.red}30`,borderRadius:"13px",padding:"13px",marginTop:"4px"}}>
+          <div style={{fontSize:"10px",color:C.red,letterSpacing:"2px",marginBottom:"6px"}}>⚠️ BIGGEST CHANGE</div>
+          <div style={{fontSize:"13px",color:C.textMid,lineHeight:"1.6"}}>Cut dairy completely. Replace with oat/almond milk. For Indian vegetarians with acne, dairy is almost always the silent culprit. See difference in <strong style={{color:C.white}}>3–4 weeks.</strong></div>
         </div>
-      )}
+      </div>}
 
-      {tab === "clinic" && (
-        <div>
-          <div style={{ background:C.goldDim, border:`1px solid ${C.goldBorder}`, borderRadius:"13px", padding:"13px 14px", marginBottom:"14px", fontSize:"13px", color:C.textMid, lineHeight:"1.6" }}>
-            Pitted scars need in-clinic treatment. No serum reaches that depth. Book a dermat consultation when you're 4–6 weeks into your routine.
-          </div>
-          {CLINIC.map((t,i)=>(
-            <div key={i} style={{ background:C.card, border:`1px solid ${C.cardBorder}`, borderRadius:"13px", padding:"13px 14px", marginBottom:"7px", display:"grid", gridTemplateColumns:"28px 1fr auto", gap:"10px", alignItems:"center" }}>
-              <div style={{ fontSize:"18px" }}>{t.e}</div>
-              <div>
-                <div style={{ fontSize:"14px", color:C.white, marginBottom:"3px" }}>{t.name}</div>
-                <div style={{ fontSize:"11px", color:C.textDim }}>{t.why}</div>
-              </div>
-              <div style={{ textAlign:"right" }}>
-                <div style={{ fontSize:"11px", color:C.gold }}>{t.cost}</div>
-                <div style={{ fontSize:"9px", color:C.textDim, marginTop:"2px" }}>{t.timing}</div>
-              </div>
+      {tab==="clinic"&&<div>
+        <div style={{background:C.goldDim,border:`1px solid ${C.goldBorder}`,borderRadius:"13px",padding:"12px 14px",marginBottom:"13px",fontSize:"13px",color:C.textMid,lineHeight:"1.6"}}>Pitted scars need in-clinic treatment. Book a dermat consultation when 4–6 weeks into routine.</div>
+        {CLINIC.map((t,i)=>(
+          <div key={i} style={{background:C.card,border:`1px solid ${C.cardBorder}`,borderRadius:"13px",padding:"12px 14px",marginBottom:"7px",display:"grid",gridTemplateColumns:"28px 1fr auto",gap:"10px",alignItems:"center"}}>
+            <div style={{fontSize:"18px"}}>{t.e}</div>
+            <div>
+              <div style={{fontSize:"14px",color:C.white,marginBottom:"3px"}}>{t.name}</div>
+              <div style={{fontSize:"11px",color:C.textDim}}>{t.why}</div>
             </div>
-          ))}
-          <div style={{ background:C.purpleDim, border:`1px solid ${C.purpleBorder}`, borderRadius:"13px", padding:"14px", marginTop:"4px" }}>
-            <div style={{ fontSize:"10px", color:C.purple, letterSpacing:"2px", marginBottom:"6px" }}>💰 TOTAL INVESTMENT</div>
-            <div style={{ fontSize:"22px", color:C.purple, fontFamily:"'Georgia',serif" }}>₹20,000–₹30,000</div>
-            <div style={{ fontSize:"12px", color:C.textDim, marginTop:"4px" }}>Over 6–12 months. Permanent results. Affordable in India.</div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:"11px",color:C.gold}}>{t.cost}</div>
+              <div style={{fontSize:"9px",color:C.textDim,marginTop:"2px"}}>{t.timing}</div>
+            </div>
           </div>
+        ))}
+        <div style={{background:C.purpleDim,border:`1px solid ${C.purpleBorder}`,borderRadius:"13px",padding:"13px",marginTop:"4px"}}>
+          <div style={{fontSize:"10px",color:C.purple,letterSpacing:"2px",marginBottom:"6px"}}>💰 TOTAL INVESTMENT</div>
+          <div style={{fontSize:"22px",color:C.purple,fontFamily:"Georgia,serif"}}>₹20,000–₹30,000</div>
+          <div style={{fontSize:"12px",color:C.textDim,marginTop:"4px"}}>Over 6–12 months. Permanent results.</div>
         </div>
-      )}
+      </div>}
     </div>
   );
 }
 
-// ─── NAV ──────────────────────────────────────────────────────────────────────
-const NAV = [
-  { id: "today", icon: "◎", label: "Today" },
-  { id: "tracker", icon: "◈", label: "Tracker" },
-  { id: "routine", icon: "✦", label: "Routine" },
-  { id: "shop", icon: "◉", label: "Shop" },
-  { id: "health", icon: "✚", label: "Health" },
-];
-
-// ─── APP ROOT ─────────────────────────────────────────────────────────────────
-export default function App() {
-  const [nav, setNav] = useState("today");
-  const [history, setHistory] = useState({});
-  const [bought, setBought] = useState({});
-  const [waterGlasses, setWaterGlasses] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const h = await loadData("history");
-      const b = await loadData("bought");
-      const w = await loadData("water_" + todayKey());
-      if (h) setHistory(h);
-      if (b) setBought(b);
-      if (w !== null) setWaterGlasses(w);
-      setLoaded(true);
-    })();
-  }, []);
-
-  const todaySched = getTodaySchedule();
-  const screenTitle = { today: "Today", tracker: "Progress", routine: "Routines", shop: "Shopping", health: "Health" }[nav];
-
-  if (!loaded) return (
-    <div style={{ background: C.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ color: C.gold, fontSize: "13px", letterSpacing: "3px" }}>LOADING...</div>
+// ── INSTALL PROMPT ─────────────────────────────────────────────────────────
+function InstallBanner(){
+  const[show,setShow]=useState(false);
+  const[deferredPrompt,setDeferredPrompt]=useState(null);
+  const[installed,setInstalled]=useState(false);
+  useEffect(()=>{
+    const handler=e=>{e.preventDefault();setDeferredPrompt(e);setShow(true);};
+    window.addEventListener("beforeinstallprompt",handler);
+    window.addEventListener("appinstalled",()=>{setShow(false);setInstalled(true);});
+    return()=>window.removeEventListener("beforeinstallprompt",handler);
+  },[]);
+  const install=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();const r=await deferredPrompt.userChoice;if(r.outcome==="accepted"){setShow(false);}};
+  if(!show||installed)return null;
+  return(
+    <div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:"480px",background:`linear-gradient(135deg,${C.goldDim},rgba(155,127,202,0.1))`,borderBottom:`1px solid ${C.goldBorder}`,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:200}}>
+      <div>
+        <div style={{fontSize:"11px",color:C.gold,fontWeight:"700"}}>✦ Add to Home Screen</div>
+        <div style={{fontSize:"10px",color:C.textDim}}>Install app for offline access</div>
+      </div>
+      <div style={{display:"flex",gap:"8px"}}>
+        <button onClick={install} style={{background:C.gold,border:"none",borderRadius:"8px",padding:"6px 14px",color:C.bg,fontSize:"11px",cursor:"pointer",fontWeight:"700"}}>Install</button>
+        <button onClick={()=>setShow(false)} style={{background:"transparent",border:"none",color:C.textDim,fontSize:"16px",cursor:"pointer"}}>✕</button>
+      </div>
     </div>
   );
+}
 
-  return (
-    <div style={{ background: C.bg, minHeight: "100vh", maxWidth: "480px", margin: "0 auto", fontFamily: "'Trebuchet MS', sans-serif", color: C.text, position: "relative" }}>
+// ── APP ────────────────────────────────────────────────────────────────────
+const NAV=[{id:"today",icon:"◎",l:"Today"},{id:"tracker",icon:"◈",l:"Tracker"},{id:"routine",icon:"✦",l:"Routine"},{id:"shop",icon:"◉",l:"Shop"},{id:"health",icon:"✚",l:"Health"}];
+
+function App(){
+  const[nav,setNav]=useState("today");
+  const[history,setHistory]=useState({});
+  const[bought,setBought]=useState({});
+  const[water,setWater]=useState(0);
+  const[loaded,setLoaded]=useState(false);
+
+  useEffect(()=>{
+    const h=load("history"),b=load("bought"),w=load("water_"+todayKey());
+    if(h)setHistory(h);if(b)setBought(b);if(w!==null)setWater(w);
+    setLoaded(true);
+  },[]);
+
+  const sched=getTodaySched();
+  const titles={today:"Today",tracker:"Progress",routine:"Routines",shop:"Shopping",health:"Health"};
+
+  if(!loaded)return <div style={{background:C.bg,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:C.gold,fontSize:"13px",letterSpacing:"3px"}}>LOADING...</div></div>;
+
+  return(
+    <div style={{background:C.bg,minHeight:"100vh",maxWidth:"480px",margin:"0 auto",position:"relative"}}>
+      <InstallBanner/>
       {/* Header */}
-      <div style={{
-        padding: "16px 20px 14px",
-        background: `linear-gradient(180deg, #130f1e 0%, ${C.bg} 100%)`,
-        borderBottom: `1px solid ${C.cardBorder}`,
-        position: "sticky", top: 0, zIndex: 50,
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-      }}>
+      <div style={{padding:"16px 18px 13px",background:`linear-gradient(180deg,#130f1e 0%,${C.bg} 100%)`,borderBottom:`1px solid ${C.cardBorder}`,position:"sticky",top:0,zIndex:50,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{ fontSize: "8px", letterSpacing: "3px", color: C.gold, marginBottom: "1px" }}>GLOW-UP SYSTEM</div>
-          <div style={{ fontSize: "18px", color: C.white, fontFamily: "'Georgia',serif" }}>{screenTitle}</div>
+          <div style={{fontSize:"8px",letterSpacing:"3px",color:C.gold,marginBottom:"1px"}}>GLOW-UP SYSTEM</div>
+          <div style={{fontSize:"18px",color:C.white,fontFamily:"Georgia,serif"}}>{titles[nav]}</div>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "10px", color: C.textDim }}>
-            {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-          </div>
-          <div style={{ display: "flex", gap: "4px", justifyContent: "flex-end", marginTop: "3px" }}>
-            <Tag color={typeColor(todaySched.type)}>{typeLabel(todaySched.type).toUpperCase()}</Tag>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:"10px",color:C.textDim}}>{new Date().toLocaleDateString("en-IN",{day:"numeric",month:"short"})}</div>
+          <div style={{display:"flex",gap:"4px",justifyContent:"flex-end",marginTop:"3px"}}>
+            <Tag color={typeColor(sched.type)}>{typeLabel(sched.type).toUpperCase()}</Tag>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div style={{ padding: "18px 18px 100px" }}>
-        {nav === "today" && <TodayScreen history={history} setHistory={setHistory} waterGlasses={waterGlasses} setWaterGlasses={setWaterGlasses} />}
-        {nav === "tracker" && <TrackerScreen history={history} />}
-        {nav === "routine" && <RoutineScreen />}
-        {nav === "shop" && <ShopScreen bought={bought} setBought={setBought} />}
-        {nav === "health" && <HealthScreen />}
+      <div style={{padding:"16px 16px 96px",overflowY:"auto"}}>
+        {nav==="today"&&<TodayScreen history={history} setHistory={setHistory} water={water} setWater={setWater}/>}
+        {nav==="tracker"&&<TrackerScreen history={history}/>}
+        {nav==="routine"&&<RoutineScreen/>}
+        {nav==="shop"&&<ShopScreen bought={bought} setBought={setBought}/>}
+        {nav==="health"&&<HealthScreen/>}
       </div>
 
       {/* Bottom Nav */}
-      <div style={{
-        position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
-        width: "100%", maxWidth: "480px",
-        background: "rgba(9,9,14,0.97)", backdropFilter: "blur(20px)",
-        borderTop: `1px solid ${C.cardBorder}`,
-        display: "flex", padding: "10px 0 14px", zIndex: 100,
-      }}>
-        {NAV.map(item => (
-          <button key={item.id} onClick={() => setNav(item.id)} style={{
-            flex: 1, background: "none", border: "none", cursor: "pointer",
-            display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "4px 0",
-          }}>
-            <div style={{ fontSize: "15px", color: nav === item.id ? C.gold : C.textDim, transition: "color 0.2s" }}>{item.icon}</div>
-            <div style={{ fontSize: "9px", letterSpacing: "0.8px", color: nav === item.id ? C.gold : C.textDim, transition: "color 0.2s" }}>{item.label.toUpperCase()}</div>
-            {nav === item.id && <div style={{ width: "4px", height: "4px", borderRadius: "50%", background: C.gold }} />}
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:"480px",background:"rgba(9,9,14,0.97)",backdropFilter:"blur(20px)",borderTop:`1px solid ${C.cardBorder}`,display:"flex",padding:"8px 0 max(12px,env(safe-area-inset-bottom))",zIndex:100}}>
+        {NAV.map(item=>(
+          <button key={item.id} onClick={()=>setNav(item.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:"2px",padding:"4px 0"}}>
+            <div style={{fontSize:"15px",color:nav===item.id?C.gold:C.textDim,transition:"color 0.2s"}}>{item.icon}</div>
+            <div style={{fontSize:"9px",letterSpacing:"0.8px",color:nav===item.id?C.gold:C.textDim,transition:"color 0.2s"}}>{item.l.toUpperCase()}</div>
+            {nav===item.id&&<div style={{width:"4px",height:"4px",borderRadius:"50%",background:C.gold}}/>}
           </button>
         ))}
       </div>
     </div>
   );
 }
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
